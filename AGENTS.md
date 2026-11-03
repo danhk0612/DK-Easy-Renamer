@@ -23,6 +23,6 @@
 - **T00:** Empty repository initialization, minimal compiling WPF/Core/test solution, MIT, docs and Windows CI. No rename operations or shell extension.
 - **T01:** Implement native Explorer menu/selection handoff and unsigned package, CI gate passed. Real registration/click tests deferred to T04.
 - **T02:** Implement rename rules, ordered planning, validation, filesystem apply/undo and automated tests. UI wiring belongs to T03.
-- **T03:** Implement complete GUI, ordering controls, rule editing, design, icon and theme.
+- **T03:** Implement GUI, manual ordering, rule editing, WPF-UI theme and icon. CI compile and Core tests run now; actual visual and interactive workflow acceptance is deferred to T04 by user request.
 - **T04:** End-to-end Windows 11 validation.
 - **T05:** Installer, lifecycle, distribution and release evidence.

@@ -2,7 +2,7 @@
 
 A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
 
-> **Status (2026-11-03):** T01 Explorer shell source and T02 rename engine are present and CI builds/tests pass. The WPF application remains a **selection handoff probe**, not a usable file-renaming GUI. Real Explorer registration and end-to-end behavior are unverified until T04.
+> **Status (2026-11-03):** T00–T02 are merged, T03 GUI source is implemented; Windows CI #19 passed 19/19 Core tests, WPF build, native DLL and unsigned package. Actual Windows 11 interaction (Explorer, visual/DPI, install/remove) remains **unverified** until T04.
 
 ## Product goals
 
@@ -29,16 +29,17 @@ A focused Windows 11 batch file/folder renamer with precise ordering and GUI-dri
 
 ## Local development
 
-On Windows 11 with the .NET 10 SDK:
+On Windows 11 with the .NET 10 SDK and PowerShell, generate the original app icon before building:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t03\Generate-Icon.ps1
 dotnet restore .\DK-Easy-Renamer.sln
 dotnet build .\DK-Easy-Renamer.sln -c Release --no-restore
 dotnet test .\DK-Easy-Renamer.sln -c Release --no-build
 dotnet run --project .\src\DK.EasyRenamer.App\DK.EasyRenamer.App.csproj
 ```
 
-The CI pipeline builds/tests on a Windows x64 runner. For local shell extension tests and install/uninstall verification see `docs/SHELL_INTEGRATION.md` (T01 onward).
+The GUI uses WPF-UI 4.3.0 (MIT). All user-facing renaming actions require a separate confirmation. The CI pipeline builds/tests on a Windows x64 runner. For local shell extension tests and install/uninstall verification see `docs/SHELL_INTEGRATION.md` (T01 onward).
 
 ## Documents
 
@@ -48,6 +49,7 @@ The CI pipeline builds/tests on a Windows x64 runner. For local shell extension 
 - [Shell integration](docs/SHELL_INTEGRATION.md)
 - [Test plan](docs/TEST_PLAN.md)
 - [Rename engine](docs/RENAME_ENGINE.md)
+- [GUI design and implementation](docs/UI_IMPLEMENTATION.md)
 - [Task plan](docs/TASKS.md)
 - [Contributor/agent instructions](AGENTS.md)
 
