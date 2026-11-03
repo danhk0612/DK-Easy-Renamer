@@ -47,3 +47,9 @@ if (Test-Path $out) { Remove-Item $out -Force }
 if ($LASTEXITCODE -ne 0) { throw 'MakeAppx failed.' }
 Write-Host "Unsigned developer package: $out"
 Write-Host "External app location: $appDir"
+
+# Replace temporary T01 .ico with the generated T03 branded icon when available.
+$brandIcon = Join-Path $RepositoryRoot 'assets\icons\DK-Easy-Renamer.ico'
+if (Test-Path $brandIcon) {
+    Copy-Item -LiteralPath $brandIcon -Destination (Join-Path $appDir 'DK-Easy-Renamer.ico') -Force
+}
