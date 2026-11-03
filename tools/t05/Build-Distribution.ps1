@@ -84,7 +84,7 @@ if ($signed) {
     $arguments += '/DSignedBuild=1'
     # Inno's signer signs Setup, uninstall binaries and temporary Setup copies.
     # Use the store certificate thumbprint; no passwords/private keys are passed to ISCC.
-    $signerCommand = '"' + $signTool + '" sign /fd SHA256 /sha1 ' + $cert.Thumbprint +
+    $signerCommand = '$q' + $signTool + '$q sign /fd SHA256 /sha1 ' + $cert.Thumbprint +
         ' /s My /tr http://timestamp.digicert.com /td SHA256 $f'
     $arguments += ('/Sdkrenamersign=' + $signerCommand)
 }
