@@ -16,7 +16,7 @@ A focused Windows 11 batch file/folder renamer with precise ordering and GUI-dri
 ## Technology baseline
 
 - C# / .NET 10 LTS; WPF desktop app on Windows 11 x64.
-- WPF UI (Fluent) is planned for T03 after shell/engine foundations are validated.
+- WPF UI (Fluent) 4.3.0 is integrated into the T03 GUI.
 - Native `IExplorerCommand` COM extension with package identity for the modern Windows 11 context menu (T01 proof of concept).
 - MIT license. All external dependency licenses must be recorded before distribution.
 
@@ -24,7 +24,7 @@ A focused Windows 11 batch file/folder renamer with precise ordering and GUI-dri
 
 - Rename rules, natural sorting, deterministic preview, collision avoidance, two-phase rename and same-session undo.
 - Unit and disposable-directory filesystem tests: **19/19** in [Windows CI run #14](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41590420863).
-- Engine API is not yet wired to the WPF UI. Nested directory plus its child in one batch is rejected for safety; see [engine design](docs/RENAME_ENGINE.md).
+- The Core engine is wired to the WPF rule editor, live preview, apply and undo UI. Nested directory plus its child in one batch is rejected for safety; see [engine design](docs/RENAME_ENGINE.md).
 - Physical Windows 11 integration acceptance is deferred to T04, not waived.
 
 ## Local development
@@ -56,7 +56,7 @@ The GUI uses WPF-UI 4.3.0 (MIT). All user-facing renaming actions require a sepa
 
 ## Windows installer candidate
 
-A self-contained Windows 11 x64 setup can be compiled after the native C++ build using `tools/t05/Build-Distribution.ps1` (Inno Setup 6 required). The CI artifact is `UNSIGNED-DO-NOT-INSTALL` and cannot be installed as a working app. For the signing contract, per-user registration, hashes and final verification see [the installer guide](docs/INSTALLER.md).
+A self-contained Windows 11 x64 setup can be compiled after the native C++ build using `tools/t05/Build-Distribution.ps1` (Inno Setup 6 required). CI creates both a blocked `UNSIGNED-DO-NOT-INSTALL` candidate and a separate **test-only `SIGNED-PROBE`** installer with a public development certificate (private signing key never uploaded). Neither is a public release; see [T05 CI #30](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41597002092). For the signing contract, per-user registration, hashes and final verification see [the installer guide](docs/INSTALLER.md).
 
 ## License
 
