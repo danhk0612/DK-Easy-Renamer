@@ -25,7 +25,7 @@ The Windows GitHub Actions job performs:
 5. Upload the clearly labeled unsigned/non-installable candidate separately.
 6. Create a short-lived dev certificate, sign a separate **SIGNED-PROBE** setup and MSIX, validate signatures and identity, export its **public certificate** only, then remove the runner's signing key.
 
-CI performs no installer execution, test-PC trust import or Explorer registration.
+**Automated build evidence:** [Windows CI #30](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41597002092) succeeded: 19/19 Core tests, native COM x64, identity comparisons, both installer modes, and signing logs for the Inno uninstaller temporary image (`uninst.e32.tmp`) and final Setup executable. The uninstaller's *installed* signature is not yet confirmed. CI performs no installer execution, test-PC trust import or Explorer registration.
 
 Run locally on Windows 11 with .NET 10 SDK, C++ Build Tools / Windows SDK and Inno Setup 6:
 
