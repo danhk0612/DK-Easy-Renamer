@@ -1,68 +1,105 @@
-# T05 non-interactive artifact integrity and PowerShell syntax validation.
+# T05 non-interactive artifact, signed-mode and embedded identity validation.
 [CmdletBinding()]
-param([string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path)
+param(
+    [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
+    [ValidateSet('Unsigned','Signed')][string]$ExpectedMode = 'Unsigned'
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path
 $art = Join-Path $root 'artifacts\t05'
 $app = Join-Path $art 'app'
+$exe = Join-Path $app 'DK.EasyRenamer.App.exe'
 $installerDir = Join-Path $art 'installer'
 $identity = Join-Path $art 'identity'
 $msix = Join-Path $art 'DKEasyRenamer.Shell.msix'
 foreach ($file in @(
-    (Join-Path $app 'DK.EasyRenamer.App.exe'),
-    (Join-Path $app 'DK.EasyRenamer.Shell.dll'),
+    $exe, (Join-Path $app 'DK.EasyRenamer.Shell.dll'),
     (Join-Path $app 'DK-Easy-Renamer.ico'),
     (Join-Path $app 'Assets\StoreLogo.png'),
     (Join-Path $app 'Assets\Square44x44Logo.png'),
     (Join-Path $app 'Assets\Square150x150Logo.png'),
-    $msix,
-    (Join-Path $identity 'AppxManifest.xml'),
+    $msix, (Join-Path $identity 'AppxManifest.xml'),
     (Join-Path $identity 'app.manifest'),
     (Join-Path $installerDir 'SHA256SUMS.txt')
 )) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing required T05 artifact: $file" }
 }
 [xml]$sparse = Get-Content (Join-Path $identity 'AppxManifest.xml') -Raw
-[xml]$exeIdentity = Get-Content (Join-Path $identity 'app.manifest') -Raw
+[xml]$sourceSxs = Get-Content (Join-Path $identity 'app.manifest') -Raw
 $pkg = $sparse.SelectSingleNode('/*[local-name()="Package"]/*[local-name()="Identity"]')
-$ex = $exeIdentity.SelectSingleNode('//*[local-name()="msix"]')
-if (-not $pkg -or -not $ex) { throw 'Incomplete package/executable identity XML.' }
-if ($pkg.GetAttribute('Name') -ne $ex.GetAttribute('packageName') -or
-    $pkg.GetAttribute('Publisher') -ne $ex.GetAttribute('publisher') -or
-    $ex.GetAttribute('applicationId') -ne 'App') {
-    throw 'Executable/package identity mismatch.'
+$sxsSource = $sourceSxs.SelectSingleNode('//*[local-name()="msix"]')
+if (-not $pkg -or -not $sxsSource) { throw 'Incomplete package/executable identity XML.' }
+
+# Extract the actual application manifest embedded in the compiled EXE.
+$sdk = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Windows Kits\10\bin'
+$mt = Get-ChildItem -LiteralPath $sdk -Directory | Sort-Object Name -Descending |
+    ForEach-Object { Join-Path $_.FullName 'x64\mt.exe' } |
+    Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $mt) { throw 'Windows SDK mt.exe not found for embedded executable manifest verification.' }
+$extracted = Join-Path $identity 'extracted-app.manifest'
+& $mt "-inputresource:$exe;#1" "-out:$extracted"
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $extracted)) {
+    throw 'Could not extract embedded application identity manifest.'
+}
+[xml]$actualSxs = Get-Content -LiteralPath $extracted -Raw
+$sxs = $actualSxs.SelectSingleNode('//*[local-name()="msix"]')
+if (-not $sxs) { throw 'Compiled EXE is missing its sparse MSIX identity.' }
+
+foreach ($value in @($sxsSource,$sxs)) {
+    if ($pkg.GetAttribute('Name') -ne $value.GetAttribute('packageName') -or
+        $pkg.GetAttribute('Publisher') -ne $value.GetAttribute('publisher') -or
+        $value.GetAttribute('applicationId') -ne 'App') {
+        throw 'Actual embedded executable and sparse package identities differ.'
+    }
 }
 
-# Examine the actual MSIX content without installing it.
 Add-Type -AssemblyName System.IO.Compression
 $zip = [System.IO.Compression.ZipFile]::OpenRead($msix)
 try {
-    if (-not ($zip.Entries | Where-Object { $_.FullName -eq 'AppxManifest.xml' })) {
-        throw 'Packed sparse MSIX has no manifest.'
+    $entry = $zip.GetEntry('AppxManifest.xml')
+    if ($null -eq $entry) { throw 'Sparse package ZIP does not contain AppxManifest.xml.' }
+    $reader = [IO.StreamReader]::new($entry.Open())
+    try { [xml]$packed = $reader.ReadToEnd() } finally { $reader.Dispose() }
+    $packedIdentity = $packed.SelectSingleNode('/*[local-name()="Package"]/*[local-name()="Identity"]')
+    foreach ($field in @('Name','Publisher','Version','ProcessorArchitecture')) {
+        if ($pkg.GetAttribute($field) -ne $packedIdentity.GetAttribute($field)) {
+            throw "Packed MSIX identity differs from staging manifest: $field"
+        }
+    }
+    $hasSignature = $null -ne $zip.GetEntry('AppxSignature.p7x')
+    if ($ExpectedMode -eq 'Unsigned' -and $hasSignature) {
+        throw 'Unsigned build unexpectedly contains a signed MSIX.'
+    }
+    if ($ExpectedMode -eq 'Signed' -and -not $hasSignature) {
+        throw 'Signed build has no MSIX signature.'
     }
 }
 finally { $zip.Dispose() }
 
-foreach ($script in @('Register-Shell.ps1','Unregister-Shell.ps1')) {
-    $source = Join-Path $root ('installer\windows\' + $script)
+foreach ($script in @(
+    'installer\windows\Register-Shell.ps1',
+    'installer\windows\Unregister-Shell.ps1',
+    'tools\t05\Build-Distribution.ps1'
+)) {
+    $source = Join-Path $root $script
     $tokens = $null
     $errors = $null
     [System.Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors) | Out-Null
     if ($errors.Count) { throw "PowerShell syntax failure in $script : $($errors[0])" }
 }
 $setup = @(Get-ChildItem -LiteralPath $installerDir -Filter 'DK-Easy-Renamer-*-x64-*.exe')
-if ($setup.Count -ne 1) { throw "Expected exactly one compiled installer, got $($setup.Count)." }
-$sumPath = Join-Path $installerDir 'SHA256SUMS.txt'
-$sums = @(Get-Content -LiteralPath $sumPath | Where-Object { $_.Trim() })
+if ($setup.Count -ne 1) { throw "Expected exactly one compiled installer, found $($setup.Count)." }
+$expectedSuffix = if ($ExpectedMode -eq 'Unsigned') { '-UNSIGNED-DO-NOT-INSTALL.exe' } else { '-SIGNED-PROBE.exe' }
+if (-not $setup[0].Name.EndsWith($expectedSuffix,[StringComparison]::Ordinal)) {
+    throw "Installer has the wrong safety mode label: $($setup[0].Name)"
+}
+$sums = @(Get-Content -LiteralPath (Join-Path $installerDir 'SHA256SUMS.txt') | Where-Object { $_.Trim() })
 foreach ($file in @($setup[0].FullName,$msix)) {
     $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
     $line = "$hash *$([IO.Path]::GetFileName($file))"
     if ($sums -notcontains $line) { throw "SHA-256 mismatch for $file" }
 }
-if ($setup[0].Name.Contains('UNSIGNED-DO-NOT-INSTALL') -and
-    -not ($setup[0].Name -match 'UNSIGNED-DO-NOT-INSTALL')) {
-    throw 'Unsigned installer lacks a safety marker.'
-}
-Write-Host "T05 artifact verification passed: $($setup[0].Name); identity $($pkg.GetAttribute('Name')) / $($pkg.GetAttribute('Version'))"
-Write-Host 'This validates packaging only, not real installation or Explorer integration.'
+Write-Host "T05 package verified: $($setup[0].Name); package identity $($pkg.GetAttribute('Name')) / $($pkg.GetAttribute('Version'))"
+Write-Host 'Actual EXE identity, packed MSIX XML, signature presence and SHA-256 all checked.'
+Write-Host 'Physical installation, Explorer menu, upgrades and uninstall are still UNVERIFIED.'

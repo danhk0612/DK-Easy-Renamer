@@ -4,7 +4,7 @@
 1. `DK.EasyRenamer.App` — WPF presentation, desktop entry point, rule-editing UI, preview and status, no direct filesystem mutation in view code.
 2. `DK.EasyRenamer.Core` — future rename models, stable ordered selection, deterministic rules, validation, execution and undo journal (T02).
 3. `DK.EasyRenamer.Shell` — future native x64 COM `IExplorerCommand` extension and handoff to App (T01).
-4. `installer/` — future deployment, sparse-package registration, repair/uninstall steps (T05).
+4. `installer/` — per-user Inno Setup with sparse identity package registration/unregistration. T05 automated build, T04 physical verification.
 5. `tests/` — hermetic core tests plus Windows-specific integration validation.
 
 ## Core invariants
@@ -15,8 +15,8 @@
 - COM menu callbacks must not parse file content or block Explorer; communicate selection to the app only.
 - Windows path/Unicode/case-insensitive file system behavior must be covered by real tests.
 
-## Baseline
-T00 provides a compiled Core project with product identity constants and a WPF informational startup window only. No runtime dependencies beyond the standard .NET desktop runtime and test tooling. WPF UI is scheduled for T03 rather than injected without an actual UI implementation.
+## Implementation status
+T00–T03 are merged with WPF-UI, native shell extension, Core planner/executor and disposable fixture tests. T05 packages the win-x64 app self-contained with package identity, but Windows 11 installed/interactive behavior is not yet verified.
 
 ## Dependency direction
 `App -> Core`; `Core -> (no App/Shell references)`; `Shell -> launch/transport contract for App`. Do not make Core depend on the Explorer process or WPF.

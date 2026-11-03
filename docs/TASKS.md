@@ -8,7 +8,7 @@
 | T01 | Native Explorer command + handoff | Merged, CI pass; first-level menu unverified until T04 |
 | T02 | Core rules/preview/apply/undo | Merged, 19/19 Windows filesystem fixture tests |
 | T03 | Fluent WPF GUI, icon, ordering | Merged, Windows build; desktop interaction unverified until T04 |
-| T05 | Per-user installer, package lifecycle, signing parameters, hashes | Inno installer compilation and artifact checks; signed installation/release blocked pending T04 |
+| T05 | Per-user installer, package lifecycle, signing parameters, hashes | CI packaged unsigned candidate, 19/19 Core tests; signed installation blocked pending T04 |
 | T04 | Full Windows 11 acceptance **last** | Signed install/uninstall, actual context menu, multi-selection, drag, preview, real files/UNC, upgrade and UX |
 
 ## Gate

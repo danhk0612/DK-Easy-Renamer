@@ -2,7 +2,7 @@
 
 A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
 
-> **Status (2026-11-03):** T00–T02 are merged, T03 GUI source is implemented; Windows CI #19 passed 19/19 Core tests, WPF build, native DLL and unsigned package. Actual Windows 11 interaction (Explorer, visual/DPI, install/remove) remains **unverified** until T04.
+> **Status (2026-11-03):** T00–T03 are merged. T05 builds a per-user self-contained Windows setup with Sparse MSIX identity registration; unsigned CI candidates are deliberately **non-installable**. Actual signed installation, first-level Explorer menu and end-to-end UI are unverified until T04.
 
 ## Product goals
 
@@ -50,8 +50,13 @@ The GUI uses WPF-UI 4.3.0 (MIT). All user-facing renaming actions require a sepa
 - [Test plan](docs/TEST_PLAN.md)
 - [Rename engine](docs/RENAME_ENGINE.md)
 - [GUI design and implementation](docs/UI_IMPLEMENTATION.md)
+- [Installer / distribution](docs/INSTALLER.md)
 - [Task plan](docs/TASKS.md)
 - [Contributor/agent instructions](AGENTS.md)
+
+## Windows installer candidate
+
+A self-contained Windows 11 x64 setup can be compiled after the native C++ build using `tools/t05/Build-Distribution.ps1` (Inno Setup 6 required). The CI artifact is `UNSIGNED-DO-NOT-INSTALL` and cannot be installed as a working app. For the signing contract, per-user registration, hashes and final verification see [the installer guide](docs/INSTALLER.md).
 
 ## License
 
