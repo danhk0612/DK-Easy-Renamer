@@ -16,7 +16,7 @@ public static class RenameSelectionSorter
             return (Item: item, Name: Path.GetFileName(path), State: fp, OriginalIndex: index);
         });
 
-        var comparer = field switch
+        IComparer<string> comparer = field switch
         {
             RenameSortField.NaturalName => Comparer<string>.Create(NaturalCompare),
             RenameSortField.Name => StringComparer.OrdinalIgnoreCase,
@@ -40,7 +40,7 @@ public static class RenameSelectionSorter
                 break;
         }
         // Stable sort preserves original selection order for ties.
-        return (descending ? ordered.Reverse() : ordered).Select(x => x.Item).ToArray();
+        return (descending ? ordered.Reverse() : ordered).ToArray();
     }
 
     public static int NaturalCompare(string? left, string? right)
