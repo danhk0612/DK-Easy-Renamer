@@ -41,6 +41,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
+      <ModuleDefinitionFile>DK.EasyRenamer.Shell.def</ModuleDefinitionFile>
       <AdditionalDependencies>Shlwapi.lib;Ole32.lib;Advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

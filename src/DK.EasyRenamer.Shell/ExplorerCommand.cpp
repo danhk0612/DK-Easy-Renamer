@@ -266,9 +266,3 @@ extern "C" HRESULT __stdcall ModuleGetClassObject(
     factory->Release();
     return hr;
 }
-
-#if defined(_M_X64)
-// Explicit undecorated COM entry-points; avoids conflicting Windows SDK prototypes.
-#pragma comment(linker, "/EXPORT:DllCanUnloadNow=ModuleCanUnload")
-#pragma comment(linker, "/EXPORT:DllGetClassObject=ModuleGetClassObject")
-#endif

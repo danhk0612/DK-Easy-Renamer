@@ -1,0 +1,4 @@
+LIBRARY "DK.EasyRenamer.Shell"
+EXPORTS
+    DllGetClassObject=ModuleGetClassObject PRIVATE
+    DllCanUnloadNow=ModuleCanUnload PRIVATE
