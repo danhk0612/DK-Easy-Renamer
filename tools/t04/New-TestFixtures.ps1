@@ -19,8 +19,9 @@ $files = [ordered]@{
     'right.txt'        = 'RIGHT - for swap tests'
     'Group A\inside.txt' = 'Child of Group A'
     'FolderOLD\child.txt' = 'Child of FolderOLD'
-    '빈 폴더\sample.txt' = 'Folder with Korean name'
+    '한글 폴더\sample.txt' = 'Folder with Korean name'
 }
+New-Item -ItemType Directory -Path (Join-Path $root '빈 폴더') -ErrorAction Stop | Out-Null
 foreach ($name in $files.Keys) {
     $full = Join-Path $root $name
     $parent = Split-Path -Parent $full
