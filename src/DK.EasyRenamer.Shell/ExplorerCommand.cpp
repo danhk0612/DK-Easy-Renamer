@@ -252,11 +252,11 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE module, DWORD reason, LPVOID)
     if (reason == DLL_PROCESS_ATTACH) DisableThreadLibraryCalls(module);
     return TRUE;
 }
-extern "C" __declspec(dllexport) HRESULT __stdcall DllCanUnloadNow()
+extern "C" HRESULT __stdcall ModuleCanUnload()
 {
     return objectCount == 0 && lockCount == 0 ? S_OK : S_FALSE;
 }
-extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObject(
+extern "C" HRESULT __stdcall ModuleGetClassObject(
     REFCLSID clsid, REFIID iid, void** output)
 {
     if (!IsEqualCLSID(clsid, CommandClsid)) return CLASS_E_CLASSNOTAVAILABLE;
@@ -266,3 +266,9 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObject(
     factory->Release();
     return hr;
 }
+
+#if defined(_M_X64)
+// Explicit undecorated COM entry-points; avoids conflicting Windows SDK prototypes.
+#pragma comment(linker, "/EXPORT:DllCanUnloadNow=ModuleCanUnload")
+#pragma comment(linker, "/EXPORT:DllGetClassObject=ModuleGetClassObject")
+#endif
