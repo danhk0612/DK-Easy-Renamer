@@ -72,3 +72,21 @@ Do not remove unrelated certificates. The disposable test fixture remains until 
 ## Evidence and exit gate
 
 For each case record PASS, FAIL, or BLOCKED; Windows build, artifact ID and hash, certificate thumbprint, screenshots, error text and reproduction steps. Real device tests not run = **T04 BLOCKED**, not a pass. Production Release/tag remains prohibited pending complete acceptance and an appropriate public signing solution.
+
+## Installation error diagnosis
+
+An 'Explorer menu registration failed' dialog is a generic installer error, not the underlying Windows deployment code. Do not disable package signature verification or blindly trust certificates.
+
+For the currently distributed installer, after dismissing the failed setup, run:
+
+    Get-AppxLog | Select-Object -Last 15 TimeCreated, Id, Message | Format-List
+
+Updated setup builds save exceptions, signing metadata and recent Appx event messages to the following per-user file, outside the install directory:
+
+    %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-registration.log
+
+Code 0x800B0109 commonly indicates an untrusted self-signed MSIX certificate. Verify the public .cer and the signed setup come from the same CI artifact before importing it. Each fresh CI run uses a different temporary test certificate. Other deployment errors need their actual code and activity log. Inspect before uninstall/cleanup.
+
+Microsoft references:
+- https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/grant-identity-to-nonpackaged-apps
+- https://learn.microsoft.com/en-us/windows/win32/appxpkg/troubleshooting
