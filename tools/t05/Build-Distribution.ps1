@@ -80,7 +80,14 @@ if (-not $compiler) {
 if (-not $compiler) { throw 'Inno Setup ISCC.exe is required to compile the installer.' }
 $iss = Join-Path $root 'installer\windows\DK-Easy-Renamer.iss'
 $arguments = @("/DPackageDir=$art","/DProductVersion=$Version","/DBuildFlavor=$flavor")
-if ($signed) { $arguments += '/DSignedBuild=1' }
+if ($signed) {
+    $arguments += '/DSignedBuild=1'
+    # Inno's signer signs Setup, uninstall binaries and temporary Setup copies.
+    # Use the store certificate thumbprint; no passwords/private keys are passed to ISCC.
+    $signerCommand = '"' + $signTool + '" sign /fd SHA256 /sha1 ' + $cert.Thumbprint +
+        ' /s My /tr http://timestamp.digicert.com /td SHA256 $f'
+    $arguments += ('/Sdkrenamersign=' + $signerCommand)
+}
 $arguments += $iss
 # Keep exactly one current installer in the staging output.
 Get-ChildItem -LiteralPath $outDir -Filter 'DK-Easy-Renamer-*-x64-*.exe' -File | Remove-Item -Force
@@ -90,8 +97,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compilation failed.' }
 $installer = Join-Path $outDir "DK-Easy-Renamer-$Version-x64-$flavor.exe"
 if (-not (Test-Path -LiteralPath $installer)) { throw 'Expected installer artifact is missing.' }
 if ($signed) {
-    & $signTool sign /fd SHA256 /sha1 $cert.Thumbprint /s My /tr http://timestamp.digicert.com /td SHA256 $installer
-    if ($LASTEXITCODE -ne 0) { throw 'Signing the outer installer failed.' }
+    # SignedUninstaller=yes and SignTool= in the ISS script sign both Setup
+    # and uninstall; verify the final Setup has an embedded signature.
+    $signature = Get-AuthenticodeSignature -LiteralPath $installer
+    if ($null -eq $signature.SignerCertificate) {
+        throw 'Inno Setup did not sign the installer as requested.'
+    }
 }
 $hashes = @($installer,$msix) | ForEach-Object {
     $hash = Get-FileHash -LiteralPath $_ -Algorithm SHA256
