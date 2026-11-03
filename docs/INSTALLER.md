@@ -12,7 +12,7 @@ A trusted certificate is a hard requirement for a functioning installed Explorer
 
 Without a signing certificate, Build-Distribution.ps1 creates an **UNSIGNED-DO-NOT-INSTALL** installer candidate. It compiles and its files are inspectable, but its InitializeSetup deliberately blocks installation. For final Windows 11 testing, CI additionally generates a short-lived **non-exportable self-signed developer certificate** in its temporary runner store, signs a separately labeled **SIGNED-PROBE** installer, exports only the **public .cer**, and removes the private-key certificate from the runner. No private key or password is uploaded, and no automatic trust is granted on a user's PC.
 
-Optionally provide -Publisher 'CN=<actual certificate Subject>' and -CertificateThumbprint '<cert in CurrentUser/My with private key>' to sign the external EXE, native DLL and MSIX. Inno Setup's SignTool directive signs the installer, uninstaller and Setup's temporary copies. The certificate must be trusted by the target Windows account. The signed output remains a **SIGNED-PROBE** pending real installation, trust-chain confirmation, removal/upgrade and SmartScreen reputation review. Do not publish to users from CI.
+Optionally provide -Publisher 'CN=<actual certificate Subject>' and -CertificateThumbprint '<cert in CurrentUser/My with private key>' to sign the external EXE, native DLL and MSIX. Inno Setup's SignTool directive signs the installer, uninstaller and Setup's temporary copies. The certificate must be trusted by the target Windows account. The signed output remains a **SIGNED-PROBE** pending real installation, trust-chain confirmation, removal/upgrade and SmartScreen reputation review. It prechecks the self-signed package certificate in LocalMachine TrustedPeople before writing any app files, and does not import certificates automatically. Do not publish to users from CI.
 
 A temporary self-signed certificate is acceptable only on an isolated test machine with explicit trust. Public distribution requires a trusted signing solution; a new publisher may still trigger SmartScreen warnings until reputation is established.
 
@@ -36,7 +36,7 @@ Run locally on Windows 11 with .NET 10 SDK, C++ Build Tools / Windows SDK and In
 
 Output: artifacts/t05/installer/DK-Easy-Renamer-0.1.0-x64-UNSIGNED-DO-NOT-INSTALL.exe, artifacts/t05/DKEasyRenamer.Shell.msix, SHA256SUMS.txt.
 
-For a signed local test build, call Build-Distribution.ps1 with -Publisher matching the exact code-signing cert subject and -CertificateThumbprint, then explicitly trust the certificate on that test machine before installation. Alternatively, obtain the CI artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** containing the test-only signed installer and **DKEasyRenamer-TEST-ONLY.cer**. On an isolated test PC, inspect that public certificate, then *explicitly* import it into CurrentUser\TrustedPeople before launching the signed installer; remove the certificate after testing. Never trust certificates from unverified sources or upload private keys/passwords.
+For a signed local test build, call Build-Distribution.ps1 with -Publisher matching the exact code-signing cert subject and -CertificateThumbprint, then explicitly trust the certificate on that test machine before installation. Alternatively, obtain the CI artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** containing the test-only signed installer and **DKEasyRenamer-TEST-ONLY.cer**. On an isolated test PC, inspect that public certificate, then *explicitly* import it into LocalMachine\TrustedPeople using elevated PowerShell before launching the signed installer; remove the certificate after testing. Never trust certificates from unverified sources or upload private keys/passwords.
 
 ## Mandatory T04 real-device acceptance
 - On Windows 11 x64 ordinary user: signed probe setup installs without privilege elevation, exact package identity and first-level Explorer action appears.
@@ -54,3 +54,11 @@ If any real-world test fails, repair it in T04 before publishing. T05 is not rel
 - Microsoft: https://learn.microsoft.com/en-us/powershell/module/appx/add-appxpackage?view=windows-11
 - Inno: https://jrsoftware.org/ishelp/topic_setup_privilegesrequired.htm
 - Inno: https://jrsoftware.org/ishelp/topic_scriptevents.htm
+
+## Confirmed installation issue (2026-11-03)
+
+A Windows 11 tester reported `0x800B0109` from `Get-AppxLog`: MSIX self-signed certificate untrusted. Earlier builds copied EXE files before attempting shell registration. Updated signed builds call `Preflight-Shell.ps1` from Inno Setup `PrepareToInstall` and stop without copying files when machine-level certificate trust is missing. The test `.cer` must come from the same signed-probe build. In an isolated test machine, **inspect the certificate and approve its trust** using elevated PowerShell:
+
+    Import-Certificate -FilePath .\DKEasyRenamer-TEST-ONLY.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+
+After testing, remove only that certificate's exact thumbprint from the same LocalMachine store. The installer never changes the certificate store itself. Other registration failures still require AppxLog review.
