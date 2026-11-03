@@ -43,6 +43,10 @@ RestartApplications=no
 DisableProgramGroupPage=yes
 
 [Files]
+; Preflight extracted before copying any files, so an untrusted test certificate
+; blocks setup without leaving a half-installed app behind.
+Source: "{#SourcePath}\Preflight-Shell.ps1"; Flags: dontcopy noencryption
+Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; Flags: dontcopy noencryption
 Source: "{#PackageDir}\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Register-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
@@ -59,6 +63,28 @@ function InitializeSetup(): Boolean;
 begin
   MsgBox('This is an unsigned CI packaging candidate. It cannot register the Explorer extension. Obtain a trusted signed build for installation.', mbCriticalError, MB_OK);
   Result := False;
+end;
+#endif
+
+
+#ifdef SignedBuild
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Cmd: String;
+  ExitCode: Integer;
+begin
+  Result := '';
+  ExtractTemporaryFile('Preflight-Shell.ps1');
+  ExtractTemporaryFile('DKEasyRenamer.Shell.msix');
+  Cmd := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+    ExpandConstant('{tmp}\Preflight-Shell.ps1') + '" -PackagePath "' +
+    ExpandConstant('{tmp}\DKEasyRenamer.Shell.msix') + '"';
+  if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    Cmd, ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, ExitCode) then
+    Result := 'Could not start the MSIX certificate preflight. No app files were installed.'
+  else if ExitCode <> 0 then
+    Result := 'The MSIX certificate preflight failed. Check %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-preflight.log. ' +
+      'A self-signed test certificate must be explicitly trusted in LocalMachine\TrustedPeople. No app files were installed.';
 end;
 #endif
 
