@@ -47,3 +47,47 @@ jobs:
           name: t01-unsigned-developer-probe
           path: artifacts/t01/
           retention-days: 7
+      - name: Locate or install Inno Setup 6 compiler
+        shell: pwsh
+        run: |
+          $compiler = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $compiler)) {
+            choco install innosetup --version=6.7.1 --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup 6 compiler installation failed.' }
+          }
+          if (-not (Test-Path -LiteralPath $compiler)) { throw 'Inno Setup ISCC.exe missing after installation.' }
+      - name: Build T05 unsigned installer candidate (noninstallable)
+        shell: pwsh
+        run: ./tools/t05/Build-Distribution.ps1
+      - name: Validate T05 identity, payload and SHA-256
+        shell: pwsh
+        run: ./tools/t05/Validate-Distribution.ps1
+      - name: Upload unsigned T05 packaging candidate (NOT a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-UNSIGNED-DO-NOT-INSTALL
+          path: |
+            artifacts/t05/installer/
+            artifacts/t05/identity/
+            artifacts/t05/DKEasyRenamer.Shell.msix
+          retention-days: 7
+      - name: Build isolated developer-signed setup (NOT a public release)
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=DK Easy Renamer Development' -CertStoreLocation 'Cert:\CurrentUser\My' -NotAfter ((Get-Date).AddMonths(3)) -KeyExportPolicy NonExportable
+          try {
+            ./tools/t05/Build-Distribution.ps1 -CertificateThumbprint $cert.Thumbprint
+            ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Signed
+            Export-Certificate -Cert $cert -FilePath 'artifacts/t05/installer/DKEasyRenamer-TEST-ONLY.cer' -Force | Out-Null
+          }
+          finally {
+            Remove-Item -LiteralPath ("Cert:\CurrentUser\My\" + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue
+          }
+      - name: Upload developer signed setup and public test certificate (TRUST MANUALLY)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST
+          path: |
+            artifacts/t05/installer/
+            artifacts/t05/DKEasyRenamer.Shell.msix
+          retention-days: 7

@@ -24,5 +24,5 @@
 - **T01:** Implement native Explorer menu/selection handoff and unsigned package, CI gate passed. Real registration/click tests deferred to T04.
 - **T02:** Implement rename rules, ordered planning, validation, filesystem apply/undo and automated tests. UI wiring belongs to T03.
 - **T03:** Implement GUI, manual ordering, rule editing, WPF-UI theme and icon. CI compile and Core tests run now; actual visual and interactive workflow acceptance is deferred to T04 by user request.
-- **T04:** End-to-end Windows 11 validation.
-- **T05:** Installer, lifecycle, distribution and release evidence.
+- **T05:** Build per-user installer and lifecycle scripts, identity consistency and signing configuration; automated unsigned package compiles but is not installable.
+- **T04 (last):** Validate real signed install/uninstall, Explorer and GUI, usability, paths and file operations on Windows 11. Do not claim shipping readiness before this gate.
