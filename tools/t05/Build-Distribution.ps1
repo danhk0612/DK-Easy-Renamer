@@ -82,6 +82,8 @@ $iss = Join-Path $root 'installer\windows\DK-Easy-Renamer.iss'
 $arguments = @("/DPackageDir=$art","/DProductVersion=$Version","/DBuildFlavor=$flavor")
 if ($signed) { $arguments += '/DSignedBuild=1' }
 $arguments += $iss
+# Keep exactly one current installer in the staging output.
+Get-ChildItem -LiteralPath $outDir -Filter 'DK-Easy-Renamer-*-x64-*.exe' -File | Remove-Item -Force
 & $compiler @arguments
 if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compilation failed.' }
 
