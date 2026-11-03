@@ -1,6 +1,6 @@
 # T04 — Windows 11 final acceptance: NOT YET EXECUTED
 
-The T00–T05 code builds. CI runs on Windows Server and cannot prove the Windows 11 Explorer first-level context menu or WPF interactions actually work. Only actual Windows 11 x64 test evidence can close T04.
+The T00–T05 code builds; T04 fixes a confirmed 0x800B0109 certificate failure, number-only sequence mode and light-mode contrast. CI runs on Windows Server and cannot prove the Windows 11 Explorer first-level context menu or WPF interactions actually work. Only actual Windows 11 x64 test evidence can close T04.
 
 ## Safety
 Use a dedicated Windows 11 test account or disposable VM. Never perform test renames on personal files or production network shares. T04 test scripts do not touch existing user files.
@@ -12,9 +12,9 @@ Use a dedicated Windows 11 test account or disposable VM. Never perform test ren
     Get-AuthenticodeSignature .\DK-Easy-Renamer-0.1.0-x64-SIGNED-PROBE.exe | Format-List Status,SignerCertificate
     Get-PfxCertificate .\DKEasyRenamer-TEST-ONLY.cer | Format-List Subject,Thumbprint,NotAfter
 
-3. Only on an isolated test account, and only after checking the certificate and installer match, explicitly trust the *public test certificate* for that account:
+3. Only on an isolated Windows test machine, after checking the signer matches the certificate, explicitly trust the *public test certificate* in the Local Machine Trusted People store (elevated PowerShell required):
 
-    Import-Certificate -FilePath .\DKEasyRenamer-TEST-ONLY.cer -CertStoreLocation Cert:\CurrentUser\TrustedPeople
+    Import-Certificate -FilePath .\DKEasyRenamer-TEST-ONLY.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
 
 4. Run the signed probe installer. Do not use UNSIGNED-DO-NOT-INSTALL. Record SmartScreen/trust prompts without weakening global security.
 5. Record the Windows build:
@@ -40,6 +40,7 @@ This creates a unique directory under %TEMP% with numeric filename samples, Unic
 | 06 | Drag/reorder multiple rows and change a rule | Manual order remains stable |
 | 07 | Number from 7 by 2 with width 3 | Preview 007,009,011 in eligible user order |
 | 08 | Exclude a row | Excluded row consumes no sequence number |
+| 08b | Sequence mode: replace original stem, 0 start, 1 increment, 2 digits | `18.svg`, `19.svg` preview as `00.svg`, `01.svg`; extension retained |
 | 09 | Find/replace, case change, prefix/suffix | Correct preview; extension unchanged unless explicitly selected |
 | 10 | Invalid regex or duplicate target | Error/collision shown; no overwrite or unwanted changes |
 | 11 | Apply safe changes, then Undo | Original names and content restored |
@@ -65,7 +66,7 @@ After uninstalling through Windows Installed apps:
 If installation trust was added, after uninstall remove only that exact certificate:
 
     $testCert = Get-PfxCertificate .\DKEasyRenamer-TEST-ONLY.cer
-    Remove-Item -LiteralPath ("Cert:\CurrentUser\TrustedPeople\" + $testCert.Thumbprint)
+    Remove-Item -LiteralPath ("Cert:\LocalMachine\TrustedPeople\" + $testCert.Thumbprint)
 
 Do not remove unrelated certificates. The disposable test fixture remains until intentionally deleted.
 
@@ -81,11 +82,11 @@ For the currently distributed installer, after dismissing the failed setup, run:
 
     Get-AppxLog | Select-Object -Last 15 TimeCreated, Id, Message | Format-List
 
-Updated setup builds save exceptions, signing metadata and recent Appx event messages to the following per-user file, outside the install directory:
+Updated setup builds check the test certificate before copying application files and save any preflight errors at `%LOCALAPPDATA%\DK Easy Renamer\Logs\shell-preflight.log`. Registration errors are stored separately here:
 
     %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-registration.log
 
-Code 0x800B0109 commonly indicates an untrusted self-signed MSIX certificate. Verify the public .cer and the signed setup come from the same CI artifact before importing it. Each fresh CI run uses a different temporary test certificate. Other deployment errors need their actual code and activity log. Inspect before uninstall/cleanup.
+Windows AppxLog from 2026-11-03 confirms 0x800B0109: the self-signed MSIX certificate was not trusted. The app files were copied even though registration failed because the earlier installer checked after copying. The updated installer checks before copying. The Local Machine Trusted People store is required for this App Installer case; importing only to Current User may not be sufficient. Verify the public .cer and the signed setup come from the same CI artifact before importing it. Each fresh CI run uses a different temporary test certificate. Other deployment errors need their actual code and activity log. Inspect before uninstall/cleanup.
 
 Microsoft references:
 - https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/grant-identity-to-nonpackaged-apps
