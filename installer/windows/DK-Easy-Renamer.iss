@@ -80,7 +80,7 @@ begin
   if CurStep = ssPostInstall then
   begin
     if not RunPowerShell('Register-Shell.ps1') then
-      RaiseException('Explorer menu registration failed. The signed MSIX must be trusted by Windows. See the installation guide.');
+      RaiseException('Explorer menu registration failed. Check %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-registration.log for the exact Windows Appx error code.');
   end;
 end;
 
