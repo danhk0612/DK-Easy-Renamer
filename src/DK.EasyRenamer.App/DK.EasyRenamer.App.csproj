@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>DK.EasyRenamer.App</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\icons\DK-Easy-Renamer.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="WPF-UI" Version="4.3.0" />
