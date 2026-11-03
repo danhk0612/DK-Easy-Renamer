@@ -1,0 +1,24 @@
+# .NET build
+bin/
+obj/
+**/TestResults/
+artifacts/
+publish/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+*.log
+
+# Packaging / signing outputs
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.pfx
+*.cer
+*.snk
+*.key
+*.p12
+*.zip
