@@ -2,7 +2,7 @@
 
 A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
 
-> **Status (2026-11-03):** T00–T02 are merged, T03 GUI implementation is under review. CI can compile and test the app, but actual Windows 11 interaction (Explorer, visual/DPI, install/remove) remains **unverified** until T04.
+> **Status (2026-11-03):** T00–T02 are merged, T03 GUI source is implemented; Windows CI #19 passed 19/19 Core tests, WPF build, native DLL and unsigned package. Actual Windows 11 interaction (Explorer, visual/DPI, install/remove) remains **unverified** until T04.
 
 ## Product goals
 
