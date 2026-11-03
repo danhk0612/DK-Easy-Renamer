@@ -21,7 +21,26 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Restore
         run: dotnet restore DK-Easy-Renamer.sln
-      - name: Build
+      - name: Build .NET app and Core
         run: dotnet build DK-Easy-Renamer.sln -c Release --no-restore
-      - name: Test
+      - name: Test binary handoff
         run: dotnet test DK-Easy-Renamer.sln -c Release --no-build --verbosity normal
+      - name: Build native x64 Explorer COM DLL
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $msbuild = & $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+          if (-not $msbuild) { throw 'MSBuild.exe not found in installed Visual Studio.' }
+          & $msbuild 'src/DK.EasyRenamer.Shell/DK.EasyRenamer.Shell.vcxproj' /p:Configuration=Release /p:Platform=x64 /m
+          if ($LASTEXITCODE -ne 0) { throw 'Native shell build failed.' }
+      - name: Publish app
+        run: dotnet publish src/DK.EasyRenamer.App/DK.EasyRenamer.App.csproj -c Release -r win-x64 --self-contained false -o artifacts/t01/app
+      - name: Build unsigned identity MSIX
+        shell: pwsh
+        run: ./tools/t01/Build-SparsePackage.ps1
+      - name: Upload developer probe (not a signed installer)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t01-unsigned-developer-probe
+          path: artifacts/t01/
+          retention-days: 7
