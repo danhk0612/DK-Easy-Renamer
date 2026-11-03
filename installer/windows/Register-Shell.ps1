@@ -33,13 +33,11 @@ try {
         $cert = $signature.SignerCertificate
         Write-Diagnostic ("MSIX signer: {0}; thumbprint: {1}; signature status: {2}" -f $cert.Subject, $cert.Thumbprint, $signature.Status)
         $isSelfSigned = [string]::Equals($cert.Subject, $cert.Issuer, [StringComparison]::OrdinalIgnoreCase)
-        if ($isSelfSigned -and $signature.Status -ne 'Valid') {
-            $trusted = @(
-                Get-ChildItem 'Cert:\CurrentUser\TrustedPeople' -ErrorAction SilentlyContinue
-                Get-ChildItem 'Cert:\LocalMachine\TrustedPeople' -ErrorAction SilentlyContinue
-            ) | Where-Object { $_.Thumbprint -eq $cert.Thumbprint }
+        if ($isSelfSigned) {
+            $trusted = @(Get-ChildItem 'Cert:\LocalMachine\TrustedPeople' -ErrorAction Stop |
+                Where-Object Thumbprint -eq $cert.Thumbprint)
             if (-not $trusted) {
-                throw "Test MSIX certificate is not trusted. Thumbprint: $($cert.Thumbprint). Verify the supplied .cer and explicitly trust it in the test account's TrustedPeople store before retrying."
+                throw "Test MSIX certificate is not trusted. Thumbprint: $($cert.Thumbprint). Verify the supplied .cer and explicitly trust it in the LocalMachine TrustedPeople store (administrator approval) before retrying."
             }
         }
     }
