@@ -26,14 +26,13 @@ public partial class MainWindow
 
     private void OnAddFolder(object sender, RoutedEventArgs e)
     {
-        using var dialog = new System.Windows.Forms.FolderBrowserDialog
+        var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            Description = "이름을 변경할 폴더를 선택하세요 (폴더 자체만 대상)",
-            UseDescriptionForTitle = true,
-            ShowNewFolderButton = false
+            Title = "이름을 변경할 폴더 선택 (폴더 자체만 대상)",
+            Multiselect = true
         };
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            AddPaths([dialog.SelectedPath]);
+        if (dialog.ShowDialog(this) == true)
+            AddPaths(dialog.FolderNames);
     }
 
     private void OnExternalDragOver(object sender, DragEventArgs e)
