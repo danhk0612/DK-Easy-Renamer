@@ -1,18 +1,19 @@
 # Tasks — sequential delivery baseline
 
-**2026-11-03:** T00 merged (PR #1), CI passed Windows build and 2 tests. T01 implemented on work/t01-modern-explorer-command; Windows x64 native/identity-package CI and actual Explorer testing are pending. T02–T05 not started.
+**2026-11-03:** T00 merged via PR #1. T01 native code/selection handoff and sparse package compile successfully with CI run #9 (7/7 tests, zero warnings/errors). User requested **deferral of physical Windows 11 testing until late integration**, so T01 is accepted provisionally on automated evidence and physical Explorer verification is mandatory in T04/T05. T02 next.
 
-| Task | Purpose | Acceptance evidence |
+| Task | Scope | Acceptance gate |
 |---|---|---|
-| T00 | Foundation, MIT, docs, WPF/Core/tests, Windows CI | merged PR #1, CI success |
-| T01 | Native first-level Explorer command and path handoff | Windows build/packaging + signed dev registration, real first-level menu and selection/clean removal |
-| T02 | Deterministic rename engine | filesystem fixture tests, planner/apply/undo |
-| T03 | Fluent UI, sorting, ordering, GUI rules, icon | UI and accessibility tests |
-| T04 | Integration verification | actual Windows 11 acceptance suite |
-| T05 | Installer and distribution | fresh install/upgrade/uninstall, signing |
+| T00 | Foundation and CI | PR #1 merged; build/test passed |
+| T01 | Native first-level Explorer command and selection transport | CI build/test/unsigned package; physical integration carried as an explicit T04 blocker |
+| T02 | Deterministic rename engine | plan, validate, apply, undo with disposable filesystem tests |
+| T03 | Fluent UI, ordered list, GUI rules, icon/theme | UI build and automated checks; manual visual pass carried to T04 |
+| T04 | Actual Windows 11 integration/acceptance | Explorer context menu, multi-select, install/undo, path/Unicode/UNC, UI tests on real desktop |
+| T05 | Installer and final delivery | signed install, update, removal and release verification |
 
-## Task gate
-- Work one task at a time, record evidence and blockers.
-- User authorized merge without an additional request **only when all task exit criteria pass with no unresolved blocker** (2026-11-03).
-- If Explorer first-level verification or signed registration is unverified, T01 PR remains open.
-- Do not release or tag without explicit authorization.
+## Stage policy
+1. Implement and validate in sequence. Use automated tests/Windows CI early; defer actual interactive device tests until T04 when feasible.
+2. Merge when the current coding/automated gate passes, while documenting all unverified platform behavior and carrying it into T04/T05. **A green CI does not prove a modern Explorer menu works**.
+3. If code itself is failing CI or a known safety issue exists, do not merge.
+4. Publishing a release or claiming operational Windows support still requires all final physical tests.
+5. User authorized routine stage merges without further approval on 2026-11-03, and subsequently authorized deferral of physical tests.
