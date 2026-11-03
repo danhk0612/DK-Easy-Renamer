@@ -22,6 +22,35 @@ jobs:
       - name: Generate app icon
         shell: pwsh
         run: ./tools/t03/Generate-Icon.ps1
+      - name: Validate T04 fixture scripts without Explorer or live files
+        shell: pwsh
+        run: |
+          foreach ($source in @(Get-ChildItem 'tools/t04' -Filter '*.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($source.FullName,[ref]$tokens,[ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw "Parse error in $($source.Name): $($errors[0])" }
+          }
+          $created = ./tools/t04/New-TestFixtures.ps1
+          $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
+          if (-not $created.Root.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or
+              -not ([IO.Path]::GetFileName($created.Root).StartsWith('DK-EasyRenamer-T04-'))) {
+            throw 'Fixture generator did not return an isolated temp directory.'
+          }
+          try {
+            if ($created.FileCount -ne 11) { throw 'Unexpected fixture file count.' }
+            foreach ($file in @('file1.txt','file2.txt','file10.txt','한글 파일 03.txt','日本語 04.txt','_T04_MANIFEST.json')) {
+              if (-not (Test-Path -LiteralPath (Join-Path $created.Root $file))) {
+                throw "Fixture missing: $file"
+              }
+            }
+            if (-not (Test-Path -LiteralPath (Join-Path $created.Root '빈 폴더') -PathType Container)) {
+              throw 'Empty-folder fixture missing.'
+            }
+          }
+          finally {
+            Remove-Item -LiteralPath $created.Root -Recurse -Force
+          }
       - name: Restore
         run: dotnet restore DK-Easy-Renamer.sln
       - name: Build .NET app and Core
