@@ -41,7 +41,8 @@ public partial class MainWindow : Window
             new("파일 크기", RenameSortField.Size)
         };
         SortChoiceBox.SelectedIndex = 0;
-        ApplicationThemeManager.ApplySystemTheme();
+        // Start in a coherent light palette instead of mixing system Mica with custom brushes.
+        ApplicationThemeManager.Apply(ApplicationTheme.Light, Wpf.Ui.Controls.WindowBackdropType.None, updateAccent: false);
         UpdatePalette();
 
         AddPaths(selectedPaths);
@@ -55,7 +56,7 @@ public partial class MainWindow : Window
     {
         ApplicationTheme next = ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark
             ? ApplicationTheme.Light : ApplicationTheme.Dark;
-        ApplicationThemeManager.Apply(next);
+        ApplicationThemeManager.Apply(next, Wpf.Ui.Controls.WindowBackdropType.None, updateAccent: false);
         UpdatePalette();
     }
 
@@ -72,6 +73,9 @@ public partial class MainWindow : Window
         SetBrush("BrandHoverBrush", "#2266AA");
         SetBrush("ErrorBrush", dark ? "#F18C96" : "#CF4754");
         SetBrush("SuccessBrush", dark ? "#69C8A5" : "#21866C");
+        // Explicit opaque canvas: WPF-UI backdrop managers must not leave a black window beneath light controls.
+        Background = (Brush)FindResource("CanvasBrush");
+        Foreground = (Brush)FindResource("TitleBrush");
     }
 
     private static void SetBrush(string key, string hex)
