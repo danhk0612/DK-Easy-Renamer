@@ -12,7 +12,7 @@ A trusted certificate is a hard requirement for a functioning installed Explorer
 
 Without a signing certificate, Build-Distribution.ps1 creates an **UNSIGNED-DO-NOT-INSTALL** installer candidate. It compiles and its files are inspectable, but its InitializeSetup deliberately blocks installation. For final Windows 11 testing, CI additionally generates a short-lived **non-exportable self-signed developer certificate** in its temporary runner store, signs a separately labeled **SIGNED-PROBE** installer, exports only the **public .cer**, and removes the private-key certificate from the runner. No private key or password is uploaded, and no automatic trust is granted on a user's PC.
 
-Optionally provide -Publisher 'CN=<actual certificate Subject>' and -CertificateThumbprint '<cert in CurrentUser/My with private key>' to sign the external EXE, native DLL, MSIX and outer installer. The certificate must be trusted by the target Windows account. The signed output remains a **SIGNED-PROBE** pending real installation, signature verification and uninstaller signing/reputation review. Do not publish to users from CI.
+Optionally provide -Publisher 'CN=<actual certificate Subject>' and -CertificateThumbprint '<cert in CurrentUser/My with private key>' to sign the external EXE, native DLL and MSIX. Inno Setup's SignTool directive signs the installer, uninstaller and Setup's temporary copies. The certificate must be trusted by the target Windows account. The signed output remains a **SIGNED-PROBE** pending real installation, trust-chain confirmation, removal/upgrade and SmartScreen reputation review. Do not publish to users from CI.
 
 A temporary self-signed certificate is acceptable only on an isolated test machine with explicit trust. Public distribution requires a trusted signing solution; a new publisher may still trigger SmartScreen warnings until reputation is established.
 
@@ -44,7 +44,7 @@ For a signed local test build, call Build-Distribution.ps1 with -Publisher match
 - Install path with spaces and Hangul, update of an older version, changed install directory and repeat installer behavior.
 - Uninstall removes package and HKCU command values; no orphan Explorer menu; application files are removed without touching user files.
 - App is correctly recognized in Windows Installed apps and Start Menu, has the right icon, and light/dark UI remains usable.
-- Signing trust, binary/publisher alignment, installer/uninstaller signature and SmartScreen behavior verified.
+- Signing trust, binary/publisher alignment, installer/uninstaller signature chain and SmartScreen behavior verified.
 - Reject unsigned candidate installer; verify hashes; verify user data not removed.
 
 If any real-world test fails, repair it in T04 before publishing. T05 is not release approval.
