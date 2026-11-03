@@ -10,7 +10,7 @@
 ## Signing and release boundary
 A trusted certificate is a hard requirement for a functioning installed Explorer extension. It must match both the MSIX manifest Publisher and the EXE's embedded msix publisher.
 
-Without a signing certificate, Build-Distribution.ps1 creates an **UNSIGNED-DO-NOT-INSTALL** installer candidate. It compiles and its files are inspectable, but its InitializeSetup deliberately blocks installation. No trusted certificate or password is generated, stored or embedded in GitHub Actions.
+Without a signing certificate, Build-Distribution.ps1 creates an **UNSIGNED-DO-NOT-INSTALL** installer candidate. It compiles and its files are inspectable, but its InitializeSetup deliberately blocks installation. For final Windows 11 testing, CI additionally generates a short-lived **non-exportable self-signed developer certificate** in its temporary runner store, signs a separately labeled **SIGNED-PROBE** installer, exports only the **public .cer**, and removes the private-key certificate from the runner. No private key or password is uploaded, and no automatic trust is granted on a user's PC.
 
 Optionally provide -Publisher 'CN=<actual certificate Subject>' and -CertificateThumbprint '<cert in CurrentUser/My with private key>' to sign the external EXE, native DLL, MSIX and outer installer. The certificate must be trusted by the target Windows account. The signed output remains a **SIGNED-PROBE** pending real installation, signature verification and uninstaller signing/reputation review. Do not publish to users from CI.
 
@@ -22,7 +22,10 @@ The Windows GitHub Actions job performs:
 2. Install/find the Inno Setup 6 compiler, build the self-contained app with consistent identity metadata.
 3. Package the identity-only MSIX; assemble installer and copy LICENSE and THIRD_PARTY_LICENSES.
 4. Verify required files, parse PowerShell scripts, validate identity match and package ZIP, and check SHA-256 hashes.
-5. Upload separately labeled **unsigned candidate** artifacts. No installer execution and no Explorer registration occur in CI.
+5. Upload the clearly labeled unsigned/non-installable candidate separately.
+6. Create a short-lived dev certificate, sign a separate **SIGNED-PROBE** setup and MSIX, validate signatures and identity, export its **public certificate** only, then remove the runner's signing key.
+
+CI performs no installer execution, test-PC trust import or Explorer registration.
 
 Run locally on Windows 11 with .NET 10 SDK, C++ Build Tools / Windows SDK and Inno Setup 6:
 
@@ -33,7 +36,7 @@ Run locally on Windows 11 with .NET 10 SDK, C++ Build Tools / Windows SDK and In
 
 Output: artifacts/t05/installer/DK-Easy-Renamer-0.1.0-x64-UNSIGNED-DO-NOT-INSTALL.exe, artifacts/t05/DKEasyRenamer.Shell.msix, SHA256SUMS.txt.
 
-For a signed local test build, call Build-Distribution.ps1 with -Publisher matching the exact code-signing cert subject and -CertificateThumbprint, then explicitly trust the certificate on that test machine before installation. Never put signing private keys or passwords in the repository.
+For a signed local test build, call Build-Distribution.ps1 with -Publisher matching the exact code-signing cert subject and -CertificateThumbprint, then explicitly trust the certificate on that test machine before installation. Alternatively, obtain the CI artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** containing the test-only signed installer and **DKEasyRenamer-TEST-ONLY.cer**. On an isolated test PC, inspect that public certificate, then *explicitly* import it into CurrentUser\TrustedPeople before launching the signed installer; remove the certificate after testing. Never trust certificates from unverified sources or upload private keys/passwords.
 
 ## Mandatory T04 real-device acceptance
 - On Windows 11 x64 ordinary user: signed probe setup installs without privilege elevation, exact package identity and first-level Explorer action appears.
