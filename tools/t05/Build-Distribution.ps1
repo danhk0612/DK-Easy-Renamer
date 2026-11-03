@@ -91,8 +91,18 @@ if ($signed) {
 $arguments += $iss
 # Keep exactly one current installer in the staging output.
 Get-ChildItem -LiteralPath $outDir -Filter 'DK-Easy-Renamer-*-x64-*.exe' -File | Remove-Item -Force
-& $compiler @arguments
-if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compilation failed.' }
+# Pass Inno compiler arguments as discrete native argv values; the SignTool
+# command contains quoted Windows SDK paths and must remain a single option.
+$info = [System.Diagnostics.ProcessStartInfo]::new($compiler)
+$info.UseShellExecute = $false
+foreach ($value in $arguments) { [void]$info.ArgumentList.Add([string]$value) }
+$process = [System.Diagnostics.Process]::Start($info)
+if ($null -eq $process) { throw 'Unable to start Inno Setup compiler.' }
+try {
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) { throw "Inno Setup compilation failed (exit $($process.ExitCode))." }
+}
+finally { $process.Dispose() }
 
 $installer = Join-Path $outDir "DK-Easy-Renamer-$Version-x64-$flavor.exe"
 if (-not (Test-Path -LiteralPath $installer)) { throw 'Expected installer artifact is missing.' }
