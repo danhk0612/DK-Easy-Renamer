@@ -91,3 +91,20 @@ Windows AppxLog from 2026-11-03 confirms 0x800B0109: the self-signed MSIX certif
 Microsoft references:
 - https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/grant-identity-to-nonpackaged-apps
 - https://learn.microsoft.com/en-us/windows/win32/appxpkg/troubleshooting
+
+
+## Windows 11 menu absent / COM activation denied (read-only probe)
+
+The actual test PC shows package Status=Ok, manifest menu and COM entries, valid installer registry paths, but a manual PowerShell COM activation returned 0x80070005. This does **not** alone prove Explorer activation failed: activation context and permissions may differ.
+
+After restarting Explorer and right-clicking a file, run from the checked-out T04 branch in **non-admin PowerShell**:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t04\Diagnose-ExplorerCommand.ps1
+
+This script prints package/COM metadata, existing app DLL signature, external folder ACL and recent Windows COM/AppModel events. It changes no Windows settings and does not create or rename files. Review the output for usernames and paths before sharing it.
+
+PowerToys documents that MSIX ExternalLocation can alter folder DACLs on Windows 11 23H2/24H2. Such permissions are one hypothesis, not a confirmed cause. Do not modify ACLs, DCOM security or registry registration until the observed failure is established.
+
+References:
+- https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/integrate-packaged-app-with-file-explorer
+- https://github.com/microsoft/PowerToys/blob/main/src/PackageIdentity/readme.md
