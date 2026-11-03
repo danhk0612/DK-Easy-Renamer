@@ -30,6 +30,10 @@ OutputDir={#PackageDir}\installer
 OutputBaseFilename=DK-Easy-Renamer-{#ProductVersion}-x64-{#BuildFlavor}
 SetupIconFile={#SourcePath}\..\..\assets\icons\DK-Easy-Renamer.ico
 UninstallDisplayIcon={app}\DK.EasyRenamer.App.exe
+#ifdef SignedBuild
+SignTool=dkrenamersign
+SignedUninstaller=yes
+#endif
 LicenseFile={#SourcePath}\..\..\LICENSE
 WizardStyle=modern
 Compression=lzma2
