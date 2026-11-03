@@ -47,3 +47,27 @@ jobs:
           name: t01-unsigned-developer-probe
           path: artifacts/t01/
           retention-days: 7
+      - name: Locate or install Inno Setup 6 compiler
+        shell: pwsh
+        run: |
+          $compiler = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $compiler)) {
+            choco install innosetup --version=6.7.1 --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup 6 compiler installation failed.' }
+          }
+          if (-not (Test-Path -LiteralPath $compiler)) { throw 'Inno Setup ISCC.exe missing after installation.' }
+      - name: Build T05 unsigned installer candidate (noninstallable)
+        shell: pwsh
+        run: ./tools/t05/Build-Distribution.ps1
+      - name: Validate T05 identity, payload and SHA-256
+        shell: pwsh
+        run: ./tools/t05/Validate-Distribution.ps1
+      - name: Upload unsigned T05 packaging candidate (NOT a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-UNSIGNED-DO-NOT-INSTALL
+          path: |
+            artifacts/t05/installer/
+            artifacts/t05/identity/
+            artifacts/t05/DKEasyRenamer.Shell.msix
+          retention-days: 7
