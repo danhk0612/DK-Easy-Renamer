@@ -1,6 +1,6 @@
 # Tasks — sequential delivery baseline
 
-**Status as of 2026-11-03:** T00 in progress on `work/t00-project-foundation`. Do not mark it complete until Windows build/tests have actually passed. T01–T05 not started.
+**Status as of 2026-11-03:** T00 implementation submitted in [PR #1](https://github.com/danhk0612/DK-Easy-Renamer/pull/1) from `work/t00-project-foundation`. First Windows CI run [#1](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41586083088) passed restore, build (0 compiler warnings/errors) and 2/2 tests. The later CI action-version update requires revalidation on the final commit. Manual GUI startup has not been verified. T01–T05 have not started.
 
 | Task | Purpose | Completion evidence | Not in scope |
 |---|---|---|---|
@@ -21,5 +21,7 @@
 ## T00 review checklist
 - [x] GitHub repository initialized with MIT license and requirements/design/architecture/shell/test/task documents.
 - [x] .NET 10 WPF/Core/test source skeleton and Windows build workflow authored.
-- [ ] Windows CI restore/build/test confirmed.
-- [ ] PR submitted and awaiting review.
+- [x] At least one Windows CI restore/build/test run completed successfully (run #1, 2026-11-03).
+- [x] PR #1 submitted and awaiting review.
+- [ ] Current PR head CI revalidation after action upgrades/docs update.
+- [ ] Actual Windows 11 GUI launch/visual sanity check (not possible via headless CI).
