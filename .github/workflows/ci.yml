@@ -19,6 +19,9 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+      - name: Generate app icon
+        shell: pwsh
+        run: ./tools/t03/Generate-Icon.ps1
       - name: Restore
         run: dotnet restore DK-Easy-Renamer.sln
       - name: Build .NET app and Core
