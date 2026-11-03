@@ -1,6 +1,6 @@
 # Tasks — sequential delivery baseline
 
-**2026-11-03:** T00–T03 are merged on main. T01 first-level Explorer registration and T03 GUI interaction passed builds but not physical desktop tests. T02 engine passed 19/19 disposable fixture tests. By user request, **T05 installer code is built before T04 manual integration testing**.
+**2026-11-03:** T00–T03 are merged on main. T01 first-level Explorer registration and T03 GUI interaction passed builds but not physical desktop tests. T02 engine passed 19/19 disposable fixture tests. By user request, **T05 installer code is built before T04 manual integration testing**. T05 PR #5: [Windows CI #30](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41597002092) passed .NET / x64 COM builds, 19/19 isolated tests, unsigned and developer-signed installer compilation, EXE/MSIX identity/hash checks, and Inno signing of its Setup and uninstaller. This is automated build evidence, not physical Windows 11 acceptance.
 
 | Task | Scope | Acceptance |
 |---|---|---|
@@ -8,7 +8,7 @@
 | T01 | Native Explorer command + handoff | Merged, CI pass; first-level menu unverified until T04 |
 | T02 | Core rules/preview/apply/undo | Merged, 19/19 Windows filesystem fixture tests |
 | T03 | Fluent WPF GUI, icon, ordering | Merged, Windows build; desktop interaction unverified until T04 |
-| T05 | Per-user installer, package lifecycle, signing parameters, hashes | CI packaged unsigned candidate, 19/19 Core tests; signed installation blocked pending T04 |
+| T05 | Per-user installer, package lifecycle, signing parameters, hashes | CI #30 success (19/19), separate unsigned & developer-signed packages, signed uninstaller generated; real install/release blocked pending T04 |
 | T04 | Full Windows 11 acceptance **last** | Signed install/uninstall, actual context menu, multi-selection, drag, preview, real files/UNC, upgrade and UX |
 
 ## Gate
