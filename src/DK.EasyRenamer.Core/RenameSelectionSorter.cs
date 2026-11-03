@@ -23,13 +23,22 @@ public static class RenameSelectionSorter
             _ => StringComparer.OrdinalIgnoreCase
         };
 
-        var ordered = field switch
+        IEnumerable<RenameSelection> ordered;
+        switch (field)
         {
-            RenameSortField.CreatedUtc => indexed.OrderBy(x => x.State.CreatedUtc),
-            RenameSortField.ModifiedUtc => indexed.OrderBy(x => x.State.LastWriteUtc),
-            RenameSortField.Size => indexed.OrderBy(x => x.State.Length),
-            _ => indexed.OrderBy(x => x.Name, comparer)
-        };
+            case RenameSortField.CreatedUtc:
+                ordered = indexed.OrderBy(x => x.State.CreatedUtc).Select(x => x.Item);
+                break;
+            case RenameSortField.ModifiedUtc:
+                ordered = indexed.OrderBy(x => x.State.LastWriteUtc).Select(x => x.Item);
+                break;
+            case RenameSortField.Size:
+                ordered = indexed.OrderBy(x => x.State.Length).Select(x => x.Item);
+                break;
+            default:
+                ordered = indexed.OrderBy(x => x.Name, comparer).Select(x => x.Item);
+                break;
+        }
         // Stable sort preserves original selection order for ties.
         return (descending ? ordered.Reverse() : ordered).Select(x => x.Item).ToArray();
     }
