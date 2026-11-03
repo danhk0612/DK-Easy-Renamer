@@ -2,7 +2,7 @@
 
 A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
 
-> **Status:** T00 foundation only. The current app is a non-operational UI shell. It does **not** rename files, integrate with File Explorer, or install shell extensions yet.
+> **Status (2026-11-03):** T01 Explorer shell source and T02 rename engine are present and CI builds/tests pass. The WPF application remains a **selection handoff probe**, not a usable file-renaming GUI. Real Explorer registration and end-to-end behavior are unverified until T04.
 
 ## Product goals
 
@@ -19,6 +19,13 @@ A focused Windows 11 batch file/folder renamer with precise ordering and GUI-dri
 - WPF UI (Fluent) is planned for T03 after shell/engine foundations are validated.
 - Native `IExplorerCommand` COM extension with package identity for the modern Windows 11 context menu (T01 proof of concept).
 - MIT license. All external dependency licenses must be recorded before distribution.
+
+## Implemented Core (T02)
+
+- Rename rules, natural sorting, deterministic preview, collision avoidance, two-phase rename and same-session undo.
+- Unit and disposable-directory filesystem tests: **19/19** in [Windows CI run #14](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41590420863).
+- Engine API is not yet wired to the WPF UI. Nested directory plus its child in one batch is rejected for safety; see [engine design](docs/RENAME_ENGINE.md).
+- Physical Windows 11 integration acceptance is deferred to T04, not waived.
 
 ## Local development
 
@@ -40,6 +47,7 @@ The CI pipeline builds/tests on a Windows x64 runner. For local shell extension 
 - [Design system](docs/DESIGN_SYSTEM.md)
 - [Shell integration](docs/SHELL_INTEGRATION.md)
 - [Test plan](docs/TEST_PLAN.md)
+- [Rename engine](docs/RENAME_ENGINE.md)
 - [Task plan](docs/TASKS.md)
 - [Contributor/agent instructions](AGENTS.md)
 

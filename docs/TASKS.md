@@ -1,19 +1,15 @@
 # Tasks — sequential delivery baseline
 
-**2026-11-03:** T00 merged via PR #1. T01 native code/selection handoff and sparse package compile successfully with CI run #9 (7/7 tests, zero warnings/errors). User requested **deferral of physical Windows 11 testing until late integration**, so T01 is accepted provisionally on automated evidence and physical Explorer verification is mandatory in T04/T05. T02 next.
+**2026-11-03:** T00 merged PR #1. T01 merged PR #2 following Windows CI checks; actual Explorer menu functionality is **not verified** and is deferred to T04. T02 rename engine implemented and submitted in PR #3; [CI run #14](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41590420863) passed Windows build/package and **19/19** tests with 0 warnings/errors. Awaiting merge. No end-user rename GUI is implemented yet.
 
-| Task | Scope | Acceptance gate |
+| Task | Scope | Acceptance |
 |---|---|---|
-| T00 | Foundation and CI | PR #1 merged; build/test passed |
-| T01 | Native first-level Explorer command and selection transport | CI build/test/unsigned package; physical integration carried as an explicit T04 blocker |
-| T02 | Deterministic rename engine | plan, validate, apply, undo with disposable filesystem tests |
-| T03 | Fluent UI, ordered list, GUI rules, icon/theme | UI build and automated checks; manual visual pass carried to T04 |
-| T04 | Actual Windows 11 integration/acceptance | Explorer context menu, multi-select, install/undo, path/Unicode/UNC, UI tests on real desktop |
-| T05 | Installer and final delivery | signed install, update, removal and release verification |
+| T00 | Foundation | Merged, CI passed |
+| T01 | Native Explorer command/handoff | CI passed and merged; manual Windows acceptance moved to T04 |
+| T02 | GUI-independent deterministic rename engine | CI #14: 19/19 tests, build/package pass; PR #3 awaiting merge |
+| T03 | GUI, manual ordering, Fluent design, icon | UI build, automatable checks; actual visuals assessed in T04 |
+| T04 | Windows 11 integration | Real menu, file/folder multi-selection, signed registration, rename/undo & installation, permission/UNC and UI checks |
+| T05 | Installer/release | Fresh PC installation, upgrade, uninstall and code signing |
 
-## Stage policy
-1. Implement and validate in sequence. Use automated tests/Windows CI early; defer actual interactive device tests until T04 when feasible.
-2. Merge when the current coding/automated gate passes, while documenting all unverified platform behavior and carrying it into T04/T05. **A green CI does not prove a modern Explorer menu works**.
-3. If code itself is failing CI or a known safety issue exists, do not merge.
-4. Publishing a release or claiming operational Windows support still requires all final physical tests.
-5. User authorized routine stage merges without further approval on 2026-11-03, and subsequently authorized deferral of physical tests.
+## Merge policy
+After completing a stage's implementation and automated acceptance checks with no known failing tests, merge its PR. Carry any **unverified physical/interactive** requirements forward transparently to T04/T05 (user direction 2026-11-03). Do not claim real Windows operation on CI evidence alone. Do not release/tag without explicit permission.

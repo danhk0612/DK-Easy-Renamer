@@ -12,17 +12,17 @@
 ## Working policy
 1. Read this file, `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md`, and `docs/TASKS.md` before changes.
 2. Work **one task at a time** and respect the task scope; do not implement subsequent tasks implicitly.
-3. Create task-specific branches and reviewed PRs. Do not merge to `main` or publish a release/tag without an explicit request.
+3. Create task-specific branches and PRs. User authorized merging a stage after its automated gate passes and known code failures are resolved (2026-11-03). Do not publish a release/tag without an explicit request.
 4. When modifying behavior, add focused automated tests and update corresponding specs/verification notes.
 5. Never run destructive tests against a real user directory; use ephemeral test fixtures. Do not overwrite or silently skip conflicts.
 6. Keep `Core` OS-UI-independent where practical. Keep native Explorer COM callbacks very light.
-7. Distinguish verified behavior from intended behavior. Never claim modern-menu integration, installation or undo works before real Windows testing.
+7. Distinguish verified behavior from intended behavior: modern Explorer menu, installed shell extension and real-user workflow remain unverified until T04. Engine apply/undo is verified only in isolated automated filesystem fixtures.
 8. A failed validation is a blocker to report, not a reason to mark the task complete.
 
 ## Stage boundaries
 - **T00:** Empty repository initialization, minimal compiling WPF/Core/test solution, MIT, docs and Windows CI. No rename operations or shell extension.
-- **T01:** Prove Windows 11 modern Explorer integration, packaging/signing and multi-select handoff. No rename engine implementation.
-- **T02:** Build renaming core, planning/validation/undo and automated tests.
+- **T01:** Implement native Explorer menu/selection handoff and unsigned package, CI gate passed. Real registration/click tests deferred to T04.
+- **T02:** Implement rename rules, ordered planning, validation, filesystem apply/undo and automated tests. UI wiring belongs to T03.
 - **T03:** Implement complete GUI, ordering controls, rule editing, design, icon and theme.
 - **T04:** End-to-end Windows 11 validation.
 - **T05:** Installer, lifecycle, distribution and release evidence.
