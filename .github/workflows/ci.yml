@@ -71,3 +71,23 @@ jobs:
             artifacts/t05/identity/
             artifacts/t05/DKEasyRenamer.Shell.msix
           retention-days: 7
+      - name: Build isolated developer-signed setup (NOT a public release)
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=DK Easy Renamer Development' -CertStoreLocation 'Cert:\CurrentUser\My' -NotAfter ((Get-Date).AddMonths(3))
+          try {
+            ./tools/t05/Build-Distribution.ps1 -CertificateThumbprint $cert.Thumbprint
+            ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Signed
+            Export-Certificate -Cert $cert -FilePath 'artifacts/t05/installer/DKEasyRenamer-TEST-ONLY.cer' -Force | Out-Null
+          }
+          finally {
+            Remove-Item -LiteralPath ("Cert:\CurrentUser\My\" + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue
+          }
+      - name: Upload developer signed setup and public test certificate (TRUST MANUALLY)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST
+          path: |
+            artifacts/t05/installer/
+            artifacts/t05/DKEasyRenamer.Shell.msix
+          retention-days: 7
