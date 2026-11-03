@@ -79,6 +79,7 @@ finally { $zip.Dispose() }
 
 foreach ($script in @(
     'installer\windows\Register-Shell.ps1',
+    'installer\windows\Preflight-Shell.ps1',
     'installer\windows\Unregister-Shell.ps1',
     'tools\t05\Build-Distribution.ps1'
 )) {
