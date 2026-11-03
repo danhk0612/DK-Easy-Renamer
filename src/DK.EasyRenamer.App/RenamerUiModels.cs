@@ -117,7 +117,9 @@ public sealed class RuleEditorItem : INotifyPropertyChanged
     public FileDateKind DateKind { get; set; } = FileDateKind.ModifiedUtc;
     public string DateFormat { get; set; } = "yyyyMMdd";
 
-    public RenameRule Build() => (Kind switch
+    public RenameRule Build()
+    {
+        RenameRule rule = Kind switch
     {
         RuleKind.Replace => new ReplaceRule(Search, Replacement, IgnoreCase),
         RuleKind.AddText => new AddTextRule(Text, AtStart),
@@ -130,7 +132,9 @@ public sealed class RuleEditorItem : INotifyPropertyChanged
         RuleKind.Date => new DateRule(DateKind, DateFormat, AtStart, Separator),
         RuleKind.Regex => new RegexReplaceRule(Search, Replacement, IgnoreCase),
         _ => throw new ArgumentOutOfRangeException(nameof(Kind))
-    }) with { Enabled = Enabled };
+        };
+        return rule with { Enabled = Enabled };
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }
