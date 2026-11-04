@@ -261,3 +261,22 @@ jobs:
             artifacts/t05/installer/
             artifacts/t05/DKEasyRenamer.Shell.msix
           retention-days: 7
+
+  smoke-signed-installer:
+    name: CI smoke - signed install and uninstall on Windows Server 2025
+    needs: build-test
+    runs-on: windows-2025
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Download signed test package and matching public certificate
+        uses: actions/download-artifact@v4
+        with:
+          name: t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST
+          path: ${{ runner.temp }}/dk-signed-probe
+      - name: Exercise real package registration and uninstall in disposable VM
+        shell: pwsh
+        run: ./tools/t04/Smoke-InstallerOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-signed-probe/installer"
