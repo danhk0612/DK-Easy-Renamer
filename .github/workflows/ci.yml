@@ -43,6 +43,10 @@ jobs:
           $errors = $null
           [System.Management.Automation.Language.Parser]::ParseFile('tools/t05/New-StableDevCertificate.ps1',[ref]$tokens,[ref]$errors) | Out-Null
           if ($errors.Count -gt 0) { throw "Stable certificate helper parse error: $($errors[0])" }
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('tools/t05/Configure-StableDevSigning.ps1',[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw "Stable signing environment setup helper parse error: $($errors[0])" }
           $created = ./tools/t04/New-TestFixtures.ps1
           $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
           if (-not $created.Root.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or
