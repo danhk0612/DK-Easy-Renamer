@@ -58,6 +58,7 @@ public partial class MainWindow : Window
             ? ApplicationTheme.Light : ApplicationTheme.Dark;
         ApplicationThemeManager.Apply(next, Wpf.Ui.Controls.WindowBackdropType.None, updateAccent: false);
         UpdatePalette();
+        ApplyNativeCaptionStyle();
     }
 
     private void UpdatePalette()
