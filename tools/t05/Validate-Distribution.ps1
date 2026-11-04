@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [ValidateSet('Unsigned','Signed')][string]$ExpectedMode = 'Unsigned'
+    [ValidateSet('Unsigned','Signed','AppOnly')][string]$ExpectedMode = 'Unsigned'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -80,7 +80,7 @@ try {
         }
     }
     $hasSignature = $null -ne $zip.GetEntry('AppxSignature.p7x')
-    if ($ExpectedMode -eq 'Unsigned' -and $hasSignature) {
+    if ($ExpectedMode -ne 'Signed' -and $hasSignature) {
         throw 'Unsigned build unexpectedly contains a signed MSIX.'
     }
     if ($ExpectedMode -eq 'Signed' -and -not $hasSignature) {
@@ -103,7 +103,9 @@ foreach ($script in @(
 }
 $setup = @(Get-ChildItem -LiteralPath $installerDir -Filter 'DK-Easy-Renamer-*-x64-*.exe')
 if ($setup.Count -ne 1) { throw "Expected exactly one compiled installer, found $($setup.Count)." }
-$expectedSuffix = if ($ExpectedMode -eq 'Unsigned') { '-UNSIGNED-DO-NOT-INSTALL.exe' } else { '-SIGNED-PROBE.exe' }
+$expectedSuffix = if ($ExpectedMode -eq 'Unsigned') { '-UNSIGNED-DO-NOT-INSTALL.exe' }
+    elseif ($ExpectedMode -eq 'AppOnly') { '-APP-ONLY.exe' }
+    else { '-SIGNED-PROBE.exe' }
 if (-not $setup[0].Name.EndsWith($expectedSuffix,[StringComparison]::Ordinal)) {
     throw "Installer has the wrong safety mode label: $($setup[0].Name)"
 }
