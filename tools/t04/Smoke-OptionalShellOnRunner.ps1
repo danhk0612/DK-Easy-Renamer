@@ -42,11 +42,17 @@ if ((Get-AppxPackage -Name 'DKEasyRenamer.Shell') -or (Test-Path -LiteralPath $f
 }
 
 function Invoke-Executable([string]$file,[string[]]$args) {
-    $process = Start-Process -FilePath $file -ArgumentList $args -Wait -PassThru
+    Write-Host "START executable: $([IO.Path]::GetFileName($file))"
+    $process = Start-Process -FilePath $file -ArgumentList $args -PassThru
     try {
+        if (-not $process.WaitForExit(120000)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "Executable did not finish within 120 seconds: $file"
+        }
         if ($process.ExitCode -ne 0) {
             throw "Unexpected process exit $($process.ExitCode): $file"
         }
+        Write-Host "PASS executable: $([IO.Path]::GetFileName($file))"
     } finally { $process.Dispose() }
 }
 function Assert-ApplicationOnly {
@@ -61,13 +67,27 @@ function Assert-ApplicationOnly {
     }
 }
 function Assert-ShellState([int]$expected) {
-    & (Join-Path $folderPath 'Query-ShellState.ps1') -InstallDir $folderPath
-    if ($LASTEXITCODE -ne $expected) {
-        throw "Shell state mismatch: expected $expected, got $LASTEXITCODE."
-    }
+    Write-Host "START state query, expecting $expected"
+    $shell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $query = Join-Path $folderPath 'Query-ShellState.ps1'
+    $q = Start-Process -FilePath $shell -ArgumentList @(
+        '-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
+        '-File',('"'+$query+'"'),'-InstallDir',('"'+$folderPath+'"')
+    ) -PassThru
+    try {
+        if (-not $q.WaitForExit(60000)) {
+            Stop-Process -Id $q.Id -Force -ErrorAction SilentlyContinue
+            throw 'Shell status query exceeded 60 seconds.'
+        }
+        if ($q.ExitCode -ne $expected) {
+            throw "Shell state mismatch: expected $expected, got $($q.ExitCode)."
+        }
+        Write-Host "PASS shell state $expected"
+    } finally { $q.Dispose() }
 }
 
 try {
+    Write-Host 'PHASE 1: unsigned APP-ONLY installation without certificate' 
     # The intentionally unsigned, standalone-only package can install without any certificate.
     Invoke-Executable $appOnlySetups[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     Assert-ApplicationOnly
@@ -75,6 +95,7 @@ try {
     Invoke-Executable $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     & (Join-Path $PSScriptRoot 'Check-RemovedShell.ps1') | Out-Null
 
+    Write-Host 'PHASE 2: signed setup without trusting its MSIX certificate'
     # A signed (but not trusted) test setup must be able to install the base app.
     # The context menu task is unchecked by default. No trust is silently granted.
     Invoke-Executable $setup[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
@@ -96,12 +117,14 @@ try {
     Invoke-Executable $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     & (Join-Path $PSScriptRoot 'Check-RemovedShell.ps1') | Out-Null
 
+    Write-Host 'PHASE 3: temporary certificate trust and opt-in menu'
     # Only the isolated test runner receives the matching development .cer.
     Import-Certificate -FilePath $cer -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' -ErrorAction Stop | Out-Null
     Invoke-Executable $setup[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=shellmenu')
     & (Join-Path $PSScriptRoot 'Check-InstalledShell.ps1') | Out-Null
     Assert-ShellState 0
 
+    Write-Host 'PHASE 4: remove and re-enable shell registration'
     # Exercise the same installed scripts used by the application's toggle.
     & (Join-Path $folderPath 'Unregister-Shell.ps1') -InstallDir $folderPath | Out-Null
     if (@(Get-AppxPackage -Name 'DKEasyRenamer.Shell').Count -ne 0 -or
