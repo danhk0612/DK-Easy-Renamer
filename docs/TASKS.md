@@ -8,7 +8,7 @@ Updated 2026-11-04: T00–T03 and T05 are merged. T04 additionally corrects pack
 | T01 Explorer integration | Merged; actual Windows 11 file/folder context menu confirmed after reboot |
 | T02 rename core | Merged; disposable filesystem tests pass |
 | T03 Fluent GUI | Merged; compile pass; actual apply/Undo, sorting and theme require testing |
-| T05 installer | Merged; signed test installation and package registration confirmed; upgrade/uninstall unverified |
+| T05 installer | Merged; Windows 11 signed test install confirmed; Windows Server 2025 install/uninstall CI passed; Windows 11 upgrade/uninstall unverified |
 | T04 integrated acceptance | PARTIAL PASS: modern context-menu visibility and readable Korean title; new 0.1.1 taskbar/titlebar icons and remaining user flows require physical verification |
 
 ## Reusable test certificate

@@ -124,3 +124,7 @@ References:
 ## Branding for package identity (T04)
 
 Unlike the WPF window icon, the Windows taskbar uses the `Square44x44Logo.png` declared in `AppxManifest.xml` after sparse package registration. The builder now resizes the original 256px document/pencil PNG to all three MSIX visual logos, removing the previous `DK` text placeholder. The WPF window inherits the original ICO through the ApplicationIcon build setting. The 0.1.1 test version prevents mixing new assets with the old 0.1.0 package identity. After updating, restart Explorer/sign out if taskbar pinning caches the old glyph; remove/re-pin an old shortcut only when needed.
+
+## Windows Server 2025 package lifecycle CI
+
+A disposable CI VM imports the matching public test certificate, installs the 0.1.1 signed probe, checks Appx/COM/app paths, uninstalls and checks cleanup, then removes its temporary certificate trust. [Successful smoke run](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41752486153). The installer chooses an already installed PowerShell 7 when present, otherwise falls back to built-in Windows PowerShell 5.1. PowerShell 7 is NOT required on a Windows 11 test PC. Windows 11 interactive appearance, update and user workflows still require physical confirmation.

@@ -136,3 +136,12 @@ A physical test screenshot showed the old *DK letters on blue* taskbar icon alth
 The native caption previously displayed a blue title band without visible text, despite `Title=DK Easy Renamer` in XAML. `MainWindow.Caption.cs` now writes the title to the Win32 HWND and requests DWM white caption text on the #2D7BC6 caption, preserving Windows standard minimize/maximize/close controls. Test build version is incremented to **0.1.1** to distinguish the changed package assets from the old 0.1.0 install.
 
 **To verify on Windows 11:** Install the new signed 0.1.1 probe using its corresponding trusted test certificate; close existing app windows, restart Explorer or sign out if an old icon is cached. Confirm (a) taskbar, titlebar and Start-menu icon use the document/pencil mark, (b) top native title reads `DK Easy Renamer` in white on blue, (c) basic minimize/maximize/close/drag behavior remains intact, and (d) Light/Dark theme switching still reads clearly. User-observed PASS/FAIL required; a passing image/COM build is not enough.
+
+
+## Automated signed install/uninstall on Windows Server 2025 (2026-11-04)
+
+CI now downloads the exact 0.1.1 signed installer and matching public certificate to a disposable Windows Server 2025 runner. It trusts the test certificate only on that runner, runs Inno Setup, verifies external app/COM/MSIX registration, runs uninstall, verifies package/registry/EXE removal and removes temporary certificate trust. [Windows Server 2025 smoke CI #41752486153](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41752486153): PASS.
+
+The initial Server 2025 setup test was blocked at Inno PrepareToInstall because that runner's legacy Windows PowerShell could not load its security module. Setup now prefers already-installed PowerShell 7, otherwise uses the existing Windows PowerShell 5.1 fallback. It does not add a PowerShell 7 prerequisite for Windows 11.
+
+This is automated Windows Server 2025 package lifecycle proof, NOT Windows 11 GUI acceptance. Taskbar icon, native caption and actual UI rename/Undo remain pending real Windows 11 observation.
