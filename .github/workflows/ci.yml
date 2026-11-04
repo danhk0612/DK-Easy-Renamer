@@ -91,6 +91,9 @@ jobs:
             throw "Native COM DLL does not contain the expected UTF-16 Korean menu title: $expectedTitle"
           }
           Write-Host "Verified native Explorer menu title: $expectedTitle"
+      - name: Verify Explorer quick-action registration and Unicode labels
+        shell: pwsh
+        run: ./tools/t04/Validate-QuickMenu.ps1
       - name: Publish app
         run: dotnet publish src/DK.EasyRenamer.App/DK.EasyRenamer.App.csproj -c Release -r win-x64 --self-contained false -o artifacts/t01/app
       - name: Build unsigned identity MSIX
@@ -200,6 +203,9 @@ jobs:
           if (-not [Convert]::ToHexString($binary).Contains([Convert]::ToHexString($expected))) {
             throw 'Compiled DLL contains the wrong Unicode menu title.'
           }
+      - name: Verify Explorer quick-action registration and Unicode labels
+        shell: pwsh
+        run: ./tools/t04/Validate-QuickMenu.ps1
       - name: Install Inno Setup 6
         shell: pwsh
         run: |
