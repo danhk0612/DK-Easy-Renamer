@@ -128,3 +128,18 @@ Unlike the WPF window icon, the Windows taskbar uses the `Square44x44Logo.png` d
 ## Windows Server 2025 package lifecycle CI
 
 A disposable CI VM imports the matching public test certificate, installs the 0.1.1 signed probe, checks Appx/COM/app paths, uninstalls and checks cleanup, then removes its temporary certificate trust. [Successful smoke run](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41752486153). The installer chooses an already installed PowerShell 7 when present, otherwise falls back to built-in Windows PowerShell 5.1. PowerShell 7 is NOT required on a Windows 11 test PC. Windows 11 interactive appearance, update and user workflows still require physical confirmation.
+
+
+### One-time signing-secret setup helper (T04 follow-up)
+
+To stop re-importing new test certificates with every installation, prepare a reusable development certificate and configure the protected GitHub environment once. Do not share or upload the private PFX in issues, chat or artifacts.
+
+1. Generate one stable certificate with New-StableDevCertificate.ps1, in a private directory OUTSIDE Git (see previous section).
+2. Create the dev-signing environment under GitHub Settings > Environments and restrict eligible branches / require review as appropriate.
+3. Install GitHub CLI and authenticate locally (gh auth login). From your Git checkout run:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t05\Configure-StableDevSigning.ps1 -CertificateDirectory "$env:USERPROFILE\Documents\DK-Renamer-Private"
+
+The script asks for explicit YES and the existing PFX password, validates the matching public certificate, and uploads only the encrypted environment secrets and pinned thumbprint through GitHub CLI stdin (never PFX/password command-line arguments). It does not automatically trust a certificate on any PC.
+
+**An existing installation folder does NOT bypass certificate checks.** The regular PR workflow currently issues a different self-signed test identity for each job; therefore the next ephemeral signed installer triggers 0x800B0109 until its public certificate is trusted. A build using the protected persistent PFX avoids this after one-time trust while the certificate remains valid. The source code cannot populate signing secrets on your behalf without a user-provided private key.
