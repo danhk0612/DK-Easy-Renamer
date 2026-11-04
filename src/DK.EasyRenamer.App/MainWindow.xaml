@@ -56,6 +56,8 @@
                            FontSize="12" Margin="0,3,0,0" Foreground="{DynamicResource MutedBrush}" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="CheckUpdatesButton" Content="업데이트 확인" Click="OnCheckUpdates"
+                        ToolTip="공식 GitHub 정식 릴리스에서 새 버전 확인" Margin="0,0,10,0" />
                 <Button Click="OnToggleTheme" ToolTip="라이트 / 다크 테마 전환" Margin="0,0,10,0" MinWidth="40">
                     <ui:SymbolIcon Symbol="WeatherMoon24" />
                 </Button>
