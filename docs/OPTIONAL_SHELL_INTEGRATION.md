@@ -8,7 +8,7 @@ The WPF batch renamer is a standalone Windows desktop application. Its modern Wi
 
 ## Installation behavior
 
-- **Unsigned / APP-ONLY:** `tools/t05/Build-Distribution.ps1 -AppOnly` builds an explicitly unsigned standalone test installer. No Explorer menu task is provided; the WPF app can launch directly. This build is not approved for public distribution. Windows SmartScreen or Smart App Control may warn or block unsigned installers.
+- **Unsigned / APP-ONLY:** `tools/t05/Build-Distribution.ps1 -AppOnly` builds an explicitly unsigned standalone test installer. The Explorer menu task is visible but **disabled**, including rejection of silent attempts to opt in. The WPF app is intended to launch without the optional MSIX identity. This build is not approved for public distribution. Windows SmartScreen or Smart App Control may warn or block unsigned installers.
 - **Signed / SIGNED-PROBE:** Inno Setup displays an *unchecked* `Windows 11 탐색기 우클릭 메뉴 등록` task. When the matching MSIX certificate is not trusted, this checkbox is visibly disabled and unchecked. The WPF application can still be installed.
 - **Silent install:** `/TASKS=shellmenu` explicitly opts in. The certificate is checked again before any installation files are copied; if it is untrusted, that particular opt-in installation is rejected. Omit the task to install only the app.
 - The previous `UNSIGNED-DO-NOT-INSTALL` CI packaging candidate remains deliberately blocked; it is not the APP-ONLY installer.
