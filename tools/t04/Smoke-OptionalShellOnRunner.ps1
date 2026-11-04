@@ -76,8 +76,8 @@ try {
     & (Join-Path $PSScriptRoot 'Check-RemovedShell.ps1') | Out-Null
 
     # A signed (but not trusted) test setup must be able to install the base app.
-    # /TASKS= excludes context menu registration. No trust is silently granted.
-    Invoke-Executable $setup[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=')
+    # The context menu task is unchecked by default. No trust is silently granted.
+    Invoke-Executable $setup[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     Assert-ApplicationOnly
     Assert-ShellState 2
 
