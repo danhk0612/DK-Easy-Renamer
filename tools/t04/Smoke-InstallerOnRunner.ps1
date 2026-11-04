@@ -52,6 +52,34 @@ try {
     & (Join-Path $PSScriptRoot 'Check-InstalledShell.ps1')
     Write-Host 'Windows Server 2025 package registration smoke PASS (not Windows 11 UI acceptance).'
 
+    # Lightweight GUI launch smoke. A CI VM may not expose an interactive desktop,
+    # so absent MainWindowHandle is BLOCKED rather than a fabricated PASS.
+    $appExe = Join-Path $env:LOCALAPPDATA 'Programs\DK Easy Renamer\DK.EasyRenamer.App.exe'
+    $appProcess = Start-Process -FilePath $appExe -PassThru
+    try {
+        for ($attempt = 0; $attempt -lt 16; $attempt++) {
+            Start-Sleep -Milliseconds 500
+            $appProcess.Refresh()
+            if ($appProcess.HasExited -or $appProcess.MainWindowHandle -ne [IntPtr]::Zero) { break }
+        }
+        if ($appProcess.HasExited) {
+            throw "Installed GUI app exited during startup (code $($appProcess.ExitCode))."
+        }
+        if ($appProcess.MainWindowHandle -eq [IntPtr]::Zero) {
+            Write-Warning 'CI has no accessible GUI window: native caption/visual UI acceptance BLOCKED on this runner.'
+        }
+        else {
+            if ($appProcess.MainWindowTitle -ne 'DK Easy Renamer') {
+                throw "Native WPF window title mismatch: [$($appProcess.MainWindowTitle)]."
+            }
+            Write-Host 'Windows Server 2025 WPF window title runtime smoke PASS: DK Easy Renamer'
+        }
+    }
+    finally {
+        if (-not $appProcess.HasExited) { Stop-Process -Id $appProcess.Id -Force -ErrorAction SilentlyContinue }
+        $appProcess.Dispose()
+    }
+
     if (-not (Test-Path -LiteralPath $uninstall -PathType Leaf)) { throw 'Inno uninstaller missing.' }
     $remove = Start-Process -FilePath $uninstall -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
     if ($remove.ExitCode -ne 0) { throw "Inno uninstall failed with exit code $($remove.ExitCode)." }
