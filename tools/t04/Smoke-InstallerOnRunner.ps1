@@ -42,6 +42,11 @@ try {
             Write-Host '=== Inno preflight diagnostics ==='
             Get-Content -LiteralPath $p | ForEach-Object { Write-Host $_ }
         }
+        $r = Join-Path $env:LOCALAPPDATA 'DK Easy Renamer\Logs\shell-registration.log'
+        if (Test-Path -LiteralPath $r) {
+            Write-Host '=== Inno registration diagnostics ==='
+            Get-Content -LiteralPath $r | Select-Object -Last 70 | ForEach-Object { Write-Host $_ }
+        }
         throw "Inno setup failed with exit code $($install.ExitCode)."
     }
     & (Join-Path $PSScriptRoot 'Check-InstalledShell.ps1')
