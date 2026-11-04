@@ -25,7 +25,8 @@ public partial class MainWindow
             {
                 Timeout = TimeSpan.FromSeconds(10)
             };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("DK-Easy-Renamer/0.1.1");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(
+                "DK-Easy-Renamer/" + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0"));
             using var response = await client.GetAsync(LatestReleaseApi, HttpCompletionOption.ResponseHeadersRead);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
