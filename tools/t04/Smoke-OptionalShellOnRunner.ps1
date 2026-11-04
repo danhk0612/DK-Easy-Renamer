@@ -35,12 +35,12 @@ if ((Get-AppxPackage -Name 'DKEasyRenamer.Shell') -or (Test-Path -LiteralPath $i
     throw 'Runner already has an installation. Refusing to overwrite.'
 }
 
-function Invoke-Executable([string]$file,[string[]]$args) {
+function Invoke-Executable([string]$file,[string[]]$arguments) {
     $setup = [IO.Path]::GetFileName($file) -like 'DK-Easy-Renamer-*-x64-*.exe'
     $log = Join-Path $env:RUNNER_TEMP ('dk-optional-inno-' + [guid]::NewGuid().ToString('N') + '.log')
-    if ($setup) { $args += ('/LOG="' + $log + '"') }
+    if ($setup) { $arguments += ('/LOG="' + $log + '"') }
     Write-Host "START executable: $([IO.Path]::GetFileName($file))"
-    $process = Start-Process -FilePath $file -ArgumentList $args -PassThru
+    $process = Start-Process -FilePath $file -ArgumentList $arguments -PassThru
     try {
         if (-not $process.WaitForExit(90000)) {
             Write-Host '=== Running Setup-related processes at timeout ==='
