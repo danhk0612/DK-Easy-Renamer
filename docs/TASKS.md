@@ -1,14 +1,21 @@
 # Tasks — sequential delivery baseline
 
-**2026-11-03:** T00–T03 merged. T05 installer merged via PR #5; [CI #31](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41597518140) passed 19/19 core tests, WPF/C++ builds, unsigned and short-lived developer-signed setup/MSIX, Inno uninstaller signing, identity and hash checks. All actual Windows 11 Explorer/UI/install behavior remains unverified. The user requested maximum development before physical tests.
+Updated 2026-11-04: T00–T03 and T05 are merged. T04 is open as PR #6 with partial Windows 11 acceptance evidence. The reusable development signing workflow is implemented in this PR but cannot issue an artifact with a fixed certificate until a developer provisions its PFX and protected GitHub environment values.
 
-| Task | Status |
+| Stage | Status |
 |---|---|
-| T00 foundation | Merged, CI pass |
-| T01 native Windows 11 Explorer extension | Merged; actual menu not tested |
-| T02 renaming engine and undo | Merged, 19/19 disposable filesystem tests |
-| T03 Fluent GUI and branding | Merged, CI build; real UI not tested |
-| T05 installer, package signing | Merged, CI builds; real install/uninstall not tested |
-| **T04 final integrated Windows 11 acceptance** | **BLOCKED until real Windows 11 tests**, see docs/T04_ACCEPTANCE.md |
+| T00 foundation | Merged and CI pass |
+| T01 Explorer integration | Merged; actual Windows 11 file/folder context menu confirmed after reboot |
+| T02 rename core | Merged; disposable filesystem tests pass |
+| T03 Fluent GUI | Merged; compile pass; actual apply/Undo, sorting and theme require testing |
+| T05 installer | Merged; signed test installation and package registration confirmed; upgrade/uninstall unverified |
+| T04 integrated acceptance | PARTIAL PASS: modern context-menu visibility and readable Korean title; remaining user flows unverified |
 
-T04 cannot be marked complete, merged as accepted, or used for production Release without actual Windows 11 screenshots/logs and passing user workflows. Use only disposable fixtures for rename tests. No release/tag without explicit authorization.
+## Reusable test certificate
+- tools/t05/New-StableDevCertificate.ps1 creates a one-time PRIVATE PFX OUTSIDE the repo.
+- workflow_dispatch with stable_dev_signing=true runs a separate job in the protected dev-signing environment, with two secret inputs and a pinned public thumbprint variable.
+- The GitHub environment has not yet been provisioned with a persistent private key. Ordinary CI may continue to generate short-lived certificates but its artifacts are not intended for repeated end-user installation tests.
+- No private key, password or encoded key is committed or uploaded in any build artifact.
+
+## Gate
+Keep PR #6 open until multi-file selection handoff, GUI rename/Undo, sorting, theme and installation update/uninstall tests are completed on Windows 11. No Release/tag without explicit authorization.

@@ -116,3 +116,15 @@ Root cause: ExplorerCommand::GetTitle() used a UTF-8 Korean string literal while
 Fix: enable /utf-8 for the native C++ project and use ASCII universal character escapes for the Korean title so its UTF-16 content does not depend on editor encoding.
 Regression: Windows CI scans the built native COM DLL for the exact UTF-16LE title DK Easy Renamer로 이름 변경.
 Actual Explorer rendering remains unverified until the rebuilt test installer is installed with the **matching certificate** and Explorer is restarted.
+
+
+## Actual Windows 11 acceptance evidence (updated 2026-11-04)
+
+User-confirmed physical observations, separate from CI:
+- PASS: After explicitly trusting the development certificate, the application installed successfully.
+- PASS: After reboot, the command appeared in both primary and extended Windows 11 file/folder context menus.
+- PASS: The Unicode menu-title fix rendered readable Korean text in the real Explorer menu.
+- NOT TESTED: Menu invocation with multi-select path handoff, live sorting/reordering, actual rename and Undo, updated light/dark readability, full update/uninstall.
+- Provisioning pending: stable reusable development PFX and GitHub environment secrets (source-only workflow configured).
+
+Do not mark T04 as fully accepted from these partial passes; use only disposable T04 fixture files for remaining operations.

@@ -62,3 +62,61 @@ A Windows 11 tester reported `0x800B0109` from `Get-AppxLog`: MSIX self-signed c
     Import-Certificate -FilePath .\DKEasyRenamer-TEST-ONLY.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
 
 After testing, remove only that certificate's exact thumbprint from the same LocalMachine store. The installer never changes the certificate store itself. Other registration failures still require AppxLog review.
+
+
+## Stable development signing for repeatable T04 installers (preferred)
+
+Automatic pull-request CI still generates a disposable development certificate for signing-path verification; its public .cer changes each run. For repeated Windows 11 installation tests use the separate manual stable-dev-sign job in the Windows CI workflow. It reuses one certificate.
+
+### One-time certificate creation (trusted Windows PC)
+
+From a local checkout of the T04 branch, choose a PRIVATE directory outside the Git repository:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t05\New-StableDevCertificate.ps1 -OutputDirectory "$env:USERPROFILE\Documents\DK-Renamer-Private"
+
+Enter a strong PFX password and store it securely. This creates:
+- DKEasyRenamer-STABLE-DEV.pfx — PRIVATE signing key. Never commit, attach, send in chat or distribute.
+- DKEasyRenamer-STABLE-DEV.cer — public-only test certificate.
+- A public SHA-1 certificate thumbprint (40 hex characters), printed by the generator.
+
+Keep the same PFX for repeated development builds; do not regenerate it per CI run.
+
+### One-time GitHub environment configuration
+
+In GitHub Settings > Environments, create an environment named dev-signing. Require approval for access to its secrets where supported and restrict permitted branches. Review the selected branch before approving a signing run.
+
+With GitHub CLI installed and authenticated, register the PFX as a secret without printing it to the console:
+
+    $repo = 'danhk0612/DK-Easy-Renamer'
+    $pfx = "$env:USERPROFILE\Documents\DK-Renamer-Private\DKEasyRenamer-STABLE-DEV.pfx"
+    [Convert]::ToBase64String([IO.File]::ReadAllBytes($pfx)) | gh secret set DK_DEV_SIGNING_PFX_BASE64 --env dev-signing -R $repo
+
+Enter the SAME PFX password using the interactive CLI prompt:
+
+    gh secret set DK_DEV_SIGNING_PFX_PASSWORD --env dev-signing -R $repo
+
+Set the publicly known thumbprint as an environment variable (replace FINGERPRINT with the generator's exact 40 characters):
+
+    gh variable set DK_DEV_SIGNING_THUMBPRINT --body 'FINGERPRINT' --env dev-signing -R $repo
+
+After reviewing the branch, run the existing registered Windows build workflow manually:
+
+    gh workflow run ci.yml --ref work/t04-windows-acceptance -f stable_dev_signing=true -R $repo
+
+If required, approve the protected dev-signing environment job. Only this manually triggered job can read the environment secrets; ordinary pull-request CI cannot. It validates the expected subject, private key, pinned thumbprint and expiry, removes the temporary PFX and imported signing certificate from the runner, and uploads the separate artifact t05-STABLE-DEV-SIGNED-TEST-ONLY. The artifact includes the signed test installer, MSIX, SHA256 checksums and PUBLIC certificate. No PFX/private key or password is uploaded.
+
+### Windows 11 trust and repeat tests
+
+Verify installer origin/signature and public certificate match first. On an isolated Windows 11 test device only, a user may explicitly trust the public certificate in an elevated PowerShell:
+
+    Import-Certificate -FilePath .\DKEasyRenamer-STABLE-DEV.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+
+Future builds signed with the SAME pinned key do not require repeating that trust step. The native DLL still needs an Explorer refresh/restart after updates. When finished testing, remove only this certificate's exact thumbprint from the machine store. Never automatically trust a new key, and never use this self-signed test identity for public release.
+
+If dev-signing secrets are not configured, the stable signing job fails safely; code changes alone cannot create or upload a private credential.
+
+References:
+- https://docs.github.com/en/actions/concepts/security/secrets
+- https://cli.github.com/manual/gh_secret_set
+- https://cli.github.com/manual/gh_variable_set
+- https://learn.microsoft.com/en-us/windows/msix/package/sign-msix-package-guide
