@@ -80,6 +80,11 @@ try {
         $appProcess.Dispose()
     }
 
+    # Validate actual Unicode Explorer packet intake and GUI DataGrid via UI Automation.
+    # Windows PowerShell provides the .NET Framework UIAutomationClient assemblies.
+    $winPowerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    & $winPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Smoke-GuiSelection.ps1') -AppExecutable $appExe
+    if ($LASTEXITCODE -ne 0) { throw 'Installed WPF Explorer selection handoff GUI smoke failed.' }
     if (-not (Test-Path -LiteralPath $uninstall -PathType Leaf)) { throw 'Inno uninstaller missing.' }
     $remove = Start-Process -FilePath $uninstall -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
     if ($remove.ExitCode -ne 0) { throw "Inno uninstall failed with exit code $($remove.ExitCode)." }
