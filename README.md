@@ -67,3 +67,12 @@ MIT — see [LICENSE](LICENSE).
 The sparse MSIX taskbar logo and native WPF window caption now match the original document/pencil branding: no temporary `DK` logo, and `DK Easy Renamer` title displayed with white text on a blue native title bar. See the [T04 implementation PR](https://github.com/danhk0612/DK-Easy-Renamer/pull/6) and [Windows 11 acceptance checklist](https://github.com/danhk0612/DK-Easy-Renamer/issues/7). Windows 11 visual acceptance remains to be confirmed before a production release.
 
 **0.1.1 automated verification:** [Windows CI + signed install/uninstall smoke](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41753265249) passed. Windows 11 taskbar/icon/titlebar visual review and rename/Undo workflow acceptance are tracked in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).
+
+
+### UX-00/UX-01/UX-07 test build (0.1.2)
+
+- Existing Explorer rename entry remains present. Additional quick actions are grouped under a separate Explorer submenu for sequence and find/replace; WPF still previews and requires confirmation.
+- Users can manually check for new public stable GitHub Releases via the in-app **업데이트 확인** button. No automatic download or install; see issue #10.
+- Application and installer versions are both raised to **0.1.2** for accurate MSIX sparse identity upgrade validation.
+- Windows Server 2025 CI checks launch, quick-mode handoff, package registration and uninstall. Windows 11 menu layout and actual Apply/Undo still require issue #7 approval.
+- Use a manually dispatched GitHub workflow with stable_dev_signing=true to obtain a test installer signed with the existing persistent development certificate. Ordinary PR certificates rotate.

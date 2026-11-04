@@ -3,7 +3,7 @@
 [CmdletBinding()]
 param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [string]$Version = '0.1.1',
+    [string]$Version = '0.1.2',
     [string]$Publisher = 'CN=DK Easy Renamer Development',
     [string]$CertificateThumbprint = ''
 )
@@ -40,7 +40,7 @@ if (-not (Test-Path -LiteralPath $icon)) { throw 'App icon generation failed.' }
 $native = Join-Path $root 'artifacts\t01\native\DK.EasyRenamer.Shell.dll'
 if (-not (Test-Path -LiteralPath $native)) { throw 'Native x64 DLL not built yet. Run the native CI build first.' }
 if (Test-Path -LiteralPath $app) { Remove-Item -LiteralPath $app -Recurse -Force }
-& dotnet publish (Join-Path $root 'src\DK.EasyRenamer.App\DK.EasyRenamer.App.csproj') -c Release -r win-x64 --self-contained true -o $app "-p:ApplicationManifest=$appManifest"
+& dotnet publish (Join-Path $root 'src\DK.EasyRenamer.App\DK.EasyRenamer.App.csproj') -c Release -r win-x64 --self-contained true -o $app "-p:ApplicationManifest=$appManifest" "-p:Version=$Version"
 if ($LASTEXITCODE -ne 0) { throw 'Self-contained win-x64 publish failed.' }
 
 & (Join-Path $root 'tools\t01\Build-SparsePackage.ps1') -RepositoryRoot $root -ArtifactRoot $art -AppDirectory $app -ManifestFile $msixManifest
