@@ -1,8 +1,10 @@
-# CI-only: exercise optional shell registration with ONE trusted temporary test
-# certificate on an ephemeral Windows Server VM. Unsigned app-only setup itself
-# is compile-validated, but its execution on end-user Windows is not asserted here.
+# CI-only: exercise standalone and optional shell registration on a disposable Windows VM.
+# Unsigned setup is for test validation, NEVER an approved public distribution package.
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$ArtifactFolder)
+param(
+    [Parameter(Mandatory)][string]$ArtifactFolder,
+    [Parameter(Mandatory)][string]$AppOnlyArtifactFolder
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
@@ -19,6 +21,9 @@ if ($setup.Count -ne 1 -or -not (Test-Path -LiteralPath $cer -PathType Leaf) -or
     -not (Test-Path -LiteralPath $package -PathType Leaf)) {
     throw 'Signed probe, matching certificate or identity package missing.'
 }
+$standaloneFolder = (Resolve-Path -LiteralPath $AppOnlyArtifactFolder).Path
+$standalone = @(Get-ChildItem -LiteralPath $standaloneFolder -Filter 'DK-Easy-Renamer-*-x64-APP-ONLY.exe' -File)
+if ($standalone.Count -ne 1) { throw 'One unsigned app-only test setup was expected.' }
 $public = Get-PfxCertificate -FilePath $cer
 $sign = (Get-AuthenticodeSignature -LiteralPath $setup[0].FullName).SignerCertificate
 if ($null -eq $sign -or $sign.Thumbprint -ne $public.Thumbprint) {
@@ -97,6 +102,13 @@ function Assert-AppInstalledWithoutShell {
 }
 
 try {
+    Write-Host 'PHASE 0: unsigned standalone app install without certificate'
+    Invoke-Executable $standalone[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-')
+    Assert-AppInstalledWithoutShell
+    Assert-ShellState 2
+    Invoke-Executable $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+    & (Join-Path $PSScriptRoot 'Check-RemovedShell.ps1') | Out-Null
+
     Write-Host 'PHASE 1: untrusted development certificate must FAIL the shell preflight'
     $rejected = $false
     try {
@@ -104,6 +116,13 @@ try {
     }
     catch { $rejected = $true }
     if (-not $rejected) { throw 'Untrusted development MSIX was accepted.' }
+
+    Write-Host 'PHASE 1b: signed installer without trusted MSIX should install only the app'
+    Invoke-Executable $setup[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-')
+    Assert-AppInstalledWithoutShell
+    Assert-ShellState 2
+    Invoke-Executable $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+    & (Join-Path $PSScriptRoot 'Check-RemovedShell.ps1') | Out-Null
 
     # Trust is granted only on the disposable CI VM. Never import automatically
     # on a real Windows installation.
@@ -150,8 +169,8 @@ try {
 
     Invoke-Executable $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     & (Join-Path $PSScriptRoot 'Check-RemovedShell.ps1') | Out-Null
-    Write-Host 'PASS: untrusted preflight rejected; trusted app-only/shell install, off/on and uninstall.'
-    Write-Host 'Unsigned setup execution and Windows 11 interactive UI remain unverified.'
+    Write-Host 'PASS: unsigned standalone, untrusted signed app-only, trusted signed app-only, opt-in shell, toggle and uninstall.'
+    Write-Host 'Windows 11 interactive checkbox and Explorer menu UI remain unverified.'
 }
 finally {
     if (Test-Path -LiteralPath $uninstaller -PathType Leaf) {
