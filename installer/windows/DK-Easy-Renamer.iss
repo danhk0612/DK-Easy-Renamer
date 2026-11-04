@@ -79,7 +79,7 @@ begin
   Cmd := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
     ExpandConstant('{tmp}\Preflight-Shell.ps1') + '" -PackagePath "' +
     ExpandConstant('{tmp}\DKEasyRenamer.Shell.msix') + '"';
-  if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+  if not Exec(GetPowerShellExecutable(),
     Cmd, ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, ExitCode) then
     Result := 'Could not start the MSIX certificate preflight. No app files were installed.'
   else if ExitCode <> 0 then
@@ -88,6 +88,15 @@ begin
 end;
 #endif
 
+function GetPowerShellExecutable(): String;
+begin
+  // Prefer PowerShell 7 when already installed, but do not make it a dependency.
+  // Some Windows Server builds ship a broken 32-bit Windows PowerShell security module.
+  Result := ExpandConstant('{pf}\PowerShell\7\pwsh.exe');
+  if not FileExists(Result) then
+    Result := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+end;
+
 function RunPowerShell(ScriptName: String): Boolean;
 var
   ExitCode: Integer;
@@ -95,7 +104,7 @@ var
 begin
   Cmd := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
     ExpandConstant('{app}') + '\' + ScriptName + '" -InstallDir "' + ExpandConstant('{app}') + '"';
-  Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+  Result := Exec(GetPowerShellExecutable(),
     Cmd, ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ExitCode);
   if Result then
     Result := ExitCode = 0;
