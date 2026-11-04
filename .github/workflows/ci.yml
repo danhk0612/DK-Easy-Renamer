@@ -398,6 +398,11 @@ jobs:
         with:
           name: t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST
           path: ${{ runner.temp }}/dk-optional-shell-probe
-      - name: Test untrusted preflight, signed app-only install and optional shell registration
+      - name: Download unsigned standalone test setup
+        uses: actions/download-artifact@v4
+        with:
+          name: t05-UNSIGNED-APP-ONLY-TEST-ONLY
+          path: ${{ runner.temp }}/dk-app-only-probe
+      - name: Test standalone installs without shell, then trusted optional shell
         shell: pwsh
-        run: ./tools/t04/Smoke-OptionalShellOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-optional-shell-probe/installer"
+        run: ./tools/t04/Smoke-OptionalShellOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-optional-shell-probe/installer" -AppOnlyArtifactFolder "$env:RUNNER_TEMP/dk-app-only-probe"
