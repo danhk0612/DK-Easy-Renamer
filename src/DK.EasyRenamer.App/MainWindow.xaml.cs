@@ -23,7 +23,7 @@ public partial class MainWindow : Window
     private Point _dragStart;
     private FileRow? _dragSource;
 
-    public MainWindow(IReadOnlyList<string> selectedPaths, string? notice)
+    public MainWindow(IReadOnlyList<string> selectedPaths, string? notice, string? quickMode = null)
     {
         InitializeComponent();
 
@@ -48,6 +48,20 @@ public partial class MainWindow : Window
         AddPaths(selectedPaths);
         DetailText.Text = notice ?? "탐색기에서 파일을 선택하거나 파일을 이 창으로 드래그하세요.";
         _initializing = false;
+        // A quick command still enters the existing preview-and-confirmation workflow.
+        // Nothing is renamed until the user explicitly clicks Apply and confirms.
+        RuleKind? initialKind = quickMode switch
+        {
+            "sequence" => RuleKind.Sequence,
+            "replace" => RuleKind.Replace,
+            _ => null
+        };
+        if (initialKind.HasValue)
+        {
+            var rule = new RuleEditorItem(initialKind.Value);
+            _rules.Add(rule);
+            RulesList.SelectedItem = rule;
+        }
         RenderSelectedRule();
         RefreshPreview();
     }

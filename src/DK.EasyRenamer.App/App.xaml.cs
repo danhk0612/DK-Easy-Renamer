@@ -11,7 +11,11 @@ public partial class App : Application
         base.OnStartup(e);
         string[] paths = [];
         string? notice = null;
-        if (e.Args.Length == 2 && e.Args[0] == "--selection-file")
+        string? quickMode = null;
+        bool validSelectionArguments = e.Args.Length == 2 ||
+            (e.Args.Length == 4 && e.Args[2] == "--quick-mode" &&
+             e.Args[3] is "sequence" or "replace");
+        if (validSelectionArguments && e.Args.Length >= 2 && e.Args[0] == "--selection-file")
         {
             string full = Path.GetFullPath(e.Args[1]);
             string temp = Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar);
@@ -26,6 +30,7 @@ public partial class App : Application
                 {
                     using var stream = File.OpenRead(full);
                     paths = SelectionHandoff.Read(stream);
+                    quickMode = e.Args.Length == 4 ? e.Args[3] : null;
                     notice = $"탐색기에서 {paths.Length}개 항목을 전달받았습니다. 아직 이름을 변경하지 않습니다.";
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
@@ -42,7 +47,7 @@ public partial class App : Application
         else if (e.Args.Length > 0)
             notice = "지원하지 않는 실행 인수입니다.";
 
-        var window = new MainWindow(paths, notice);
+        var window = new MainWindow(paths, notice, quickMode);
         MainWindow = window;
         window.Show();
     }
