@@ -170,6 +170,36 @@ jobs:
               throw 'Expected rejection of untrusted developer-signed MSIX before installation.'
             }
             Export-Certificate -Cert $cert -FilePath 'artifacts/t05/installer/DKEasyRenamer-TEST-ONLY.cer' -Force | Out-Null
+
+            # The same ephemeral certificate signs BOTH versions. This simulates
+            # upgrading the existing 0.1.2 test installation without rotating trust.
+            # Never publish these CI probes as official GitHub Releases.
+            $upgradeRoot = 'artifacts/t05/upgrade-probe'
+            $old = Join-Path $upgradeRoot 'old'
+            $new = Join-Path $upgradeRoot 'new'
+            New-Item -ItemType Directory -Path $old,$new -Force | Out-Null
+            $original = 'artifacts/t05/installer/DK-Easy-Renamer-0.1.2-x64-SIGNED-PROBE.exe'
+            if (-not (Test-Path -LiteralPath $original)) {
+              throw 'Current 0.1.2 signed probe not found. Update the upgrade test only when the baseline version changes.'
+            }
+            Copy-Item -LiteralPath $original -Destination $old -Force
+            Copy-Item -LiteralPath 'artifacts/t05/DKEasyRenamer.Shell.msix' -Destination $old -Force
+            Copy-Item -LiteralPath 'artifacts/t05/installer/SHA256SUMS.txt' -Destination $old -Force
+            Copy-Item -LiteralPath 'artifacts/t05/installer/DKEasyRenamer-TEST-ONLY.cer' -Destination $upgradeRoot -Force
+
+            ./tools/t05/Build-Distribution.ps1 -Version '0.1.3' -CertificateThumbprint $cert.Thumbprint
+            ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Signed
+            $next = 'artifacts/t05/installer/DK-Easy-Renamer-0.1.3-x64-SIGNED-PROBE.exe'
+            if (-not (Test-Path -LiteralPath $next)) { throw 'Signed 0.1.3 upgrade fixture missing.' }
+            Copy-Item -LiteralPath $next -Destination $new -Force
+            Copy-Item -LiteralPath 'artifacts/t05/DKEasyRenamer.Shell.msix' -Destination $new -Force
+            Copy-Item -LiteralPath 'artifacts/t05/installer/SHA256SUMS.txt' -Destination $new -Force
+
+            # Restore 0.1.2 for the existing signed-install and uninstall smoke.
+            Remove-Item -LiteralPath $next -Force
+            Copy-Item -LiteralPath (Join-Path $old 'DK-Easy-Renamer-0.1.2-x64-SIGNED-PROBE.exe') -Destination 'artifacts/t05/installer/' -Force
+            Copy-Item -LiteralPath (Join-Path $old 'DKEasyRenamer.Shell.msix') -Destination 'artifacts/t05/DKEasyRenamer.Shell.msix' -Force
+            Copy-Item -LiteralPath (Join-Path $old 'SHA256SUMS.txt') -Destination 'artifacts/t05/installer/SHA256SUMS.txt' -Force
           }
           finally {
             Remove-Item -LiteralPath ("Cert:\CurrentUser\My\" + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue
@@ -181,6 +211,13 @@ jobs:
           path: |
             artifacts/t05/installer/
             artifacts/t05/DKEasyRenamer.Shell.msix
+          retention-days: 7
+
+      - name: Upload matching certificate and signed upgrade fixture pair (TEST ONLY)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-SIGNED-UPGRADE-TEST-ONLY
+          path: artifacts/t05/upgrade-probe/
           retention-days: 7
 
   stable-dev-sign:
@@ -314,3 +351,22 @@ jobs:
       - name: Exercise real package registration and uninstall in disposable VM
         shell: pwsh
         run: ./tools/t04/Smoke-InstallerOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-signed-probe/installer"
+
+  upgrade-signed-installer:
+    name: CI smoke - signed 0.1.2 to 0.1.3 upgrade on Windows Server 2025
+    needs: build-test
+    runs-on: windows-2025
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Download same-certificate signed upgrade fixtures
+        uses: actions/download-artifact@v4
+        with:
+          name: t05-SIGNED-UPGRADE-TEST-ONLY
+          path: ${{ runner.temp }}/dk-signed-upgrade
+      - name: Install old version, upgrade, verify user data and uninstall
+        shell: pwsh
+        run: ./tools/t04/Smoke-SignedUpgradeOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-signed-upgrade"
