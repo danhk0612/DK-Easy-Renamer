@@ -2,7 +2,10 @@
 # Once the matching public .cer is trusted on the disposable runner, the user
 # can optionally register and later remove the Explorer integration.
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$ArtifactFolder)
+param(
+    [Parameter(Mandatory)][string]$ArtifactFolder,
+    [Parameter(Mandatory)][string]$AppOnlyArtifactFolder
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
@@ -16,6 +19,11 @@ $setup = @(Get-ChildItem -LiteralPath $folder -Filter 'DK-Easy-Renamer-*-x64-SIG
 $cer = Join-Path $folder 'DKEasyRenamer-TEST-ONLY.cer'
 if ($setup.Count -ne 1 -or -not (Test-Path -LiteralPath $cer -PathType Leaf)) {
     throw 'Expected one signed probe and the matching public-only certificate.'
+}
+$appOnlyFolder = (Resolve-Path -LiteralPath $AppOnlyArtifactFolder).Path
+$appOnlySetups = @(Get-ChildItem -LiteralPath $appOnlyFolder -Filter 'DK-Easy-Renamer-*-x64-APP-ONLY.exe' -File)
+if ($appOnlySetups.Count -ne 1) {
+    throw 'Expected exactly one standalone-only unsigned test setup.'
 }
 $public = Get-PfxCertificate -FilePath $cer
 $sign = (Get-AuthenticodeSignature -LiteralPath $setup[0].FullName).SignerCertificate
@@ -60,6 +68,13 @@ function Assert-ShellState([int]$expected) {
 }
 
 try {
+    # The intentionally unsigned, standalone-only package can install without any certificate.
+    Invoke-Executable $appOnlySetups[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+    Assert-ApplicationOnly
+    Assert-ShellState 2
+    Invoke-Executable $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+    & (Join-Path $PSScriptRoot 'Check-RemovedShell.ps1') | Out-Null
+
     # A signed (but not trusted) test setup must be able to install the base app.
     # /TASKS= excludes context menu registration. No trust is silently granted.
     Invoke-Executable $setup[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=')
@@ -104,7 +119,7 @@ try {
 
     Invoke-Executable $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     & (Join-Path $PSScriptRoot 'Check-RemovedShell.ps1') | Out-Null
-    Write-Host 'PASS: untrusted package => base app only; trusted package => optional shell; toggle off/on; uninstall.'
+    Write-Host 'PASS: unsigned APP-ONLY and untrusted signed setup install base app; trusted package opts into shell; toggle off/on; uninstall.'
     Write-Host 'This is a Windows Server 2025 automated smoke, not interactive Windows 11 UI acceptance.'
 }
 finally {
