@@ -65,6 +65,16 @@ jobs:
           if (-not $msbuild) { throw 'MSBuild.exe not found in installed Visual Studio.' }
           & $msbuild 'src/DK.EasyRenamer.Shell/DK.EasyRenamer.Shell.vcxproj' /p:Configuration=Release /p:Platform=x64 /m
           if ($LASTEXITCODE -ne 0) { throw 'Native shell build failed.' }
+      - name: Verify native Explorer menu title Unicode
+        shell: pwsh
+        run: |
+          $binary = [IO.File]::ReadAllBytes('artifacts/t01/native/DK.EasyRenamer.Shell.dll')
+          $expectedTitle = 'DK Easy Renamer로 이름 변경'
+          $expected = [Text.Encoding]::Unicode.GetBytes($expectedTitle + [char]0)
+          if (-not [Convert]::ToHexString($binary).Contains([Convert]::ToHexString($expected))) {
+            throw "Native COM DLL does not contain the expected UTF-16 Korean menu title: $expectedTitle"
+          }
+          Write-Host "Verified native Explorer menu title: $expectedTitle"
       - name: Publish app
         run: dotnet publish src/DK.EasyRenamer.App/DK.EasyRenamer.App.csproj -c Release -r win-x64 --self-contained false -o artifacts/t01/app
       - name: Build unsigned identity MSIX
