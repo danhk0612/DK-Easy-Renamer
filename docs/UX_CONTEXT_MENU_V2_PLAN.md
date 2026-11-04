@@ -73,8 +73,17 @@ Windows 11은 여러 앱 동작을 시스템이 플라이아웃에 묶기도 한
 | UX-04 | 병목 수정 및 성능 측정 | Planner/Sorter/WPF | 1/20/500/5000 fixture, 타이밍 비교 및 기존 규칙 회귀 |
 | UX-05 | 정렬/필터/키보드 UX | WPF | 선택·번호·제외·정렬 방향 유지, 접근성·DPI 검증 |
 | UX-06 | 설치/업그레이드/Windows 11 최종 승인 | Installer/CI/manual | 기본 메뉴/빠른 작업, shell crash 없는지, 원본 무결성, 기존 dev 인증서 업그레이드, issue #7 체크 |
+| UX-07a | 사용자가 누르는 앱 업데이트 확인 | WPF/Core + 오프라인 단위 테스트 | 공식 GitHub 정식 Releases만 조회, 버전 비교, 공개 릴리스 페이지 연결; 배포 전에는 '업데이트 없음' 안내 |
+| UX-07b | 다운로드·실행 가능한 업데이트 적용 | 공식 코드 서명 확보 후 후속 작업 | 신뢰된 게시자 서명과 SHA-256 확인, 설치 전 최종 승인, 기존 설치·Explorer COM 등록·사용자 데이터 보존 |
 
 UX-00은 실제 Windows 11 화면에서 검증 가능한 사용자 실행 단계가 필요하다. 후속 작업은 각각 별도 branch/PR을 만들고 해당 Task만 구현·테스트한다. 자동 CI 통과와 실기기 Explorer PASS를 구별한다.
+
+## 5-1. 사용자 요청 추가: 프로그램 업데이트 기능 (UX-07)
+
+- **UX-07a 현재 구현 범위:** 사용자 버튼을 눌렀을 때만 `https://api.github.com/repos/danhk0612/DK-Easy-Renamer/releases/latest`에서 최신 비초안/비프리릴리스 버전을 조회한다. 앱 실제 버전과 비교하여 업데이트 없음/새 버전 출시/연결 실패를 표시하며 정식 GitHub 릴리스 페이지로 안내한다. 공개 Release가 없다면 없는 것으로 처리한다. 실행 시 자동 조회/백그라운드 상주/원격 임의 URL 실행 없음.
+- **UX-07b 추후 범위:** 검증된 공식 release 설치 EXE와 해시/인증서 신뢰 확인 후 사용자 승인으로 실제 업데이트. 현 개발용 인증서는 공개 배포용 신뢰 체계가 아니므로 자동 업데이트 설치 경로에 포함하지 않는다. 이전 설치 경로 및 sparse MSIX 패키지 identity/Explorer 메뉴를 유지해야 하며 원본 데이터나 Undo 복구 능력을 훼손하면 안 된다.
+- 버전 확인과 실제 업그레이드는 독립적으로 테스트. 참조: https://docs.github.com/en/rest/releases/releases#get-the-latest-release ; https://jrsoftware.org/isfaq.php
+- 자세한 승인 조건: https://github.com/danhk0612/DK-Easy-Renamer/issues/10
 
 ## 6. 안전 및 배포 제외 항목
 
