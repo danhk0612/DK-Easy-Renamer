@@ -35,7 +35,7 @@ try {
     try { & (Join-Path $PSScriptRoot '..\..\installer\windows\Preflight-Shell.ps1') -PackagePath $package }
     catch { Write-Warning ('Direct preflight: ' + $_.ToString()) }
     $logFile = Join-Path $env:RUNNER_TEMP 'dk-renamer-installer-test.log'
-    $install = Start-Process -FilePath $setup[0].FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+    $install = Start-Process -FilePath $setup[0].FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=shellmenu' -Wait -PassThru
     if ($install.ExitCode -ne 0) {
         $p = Join-Path $env:LOCALAPPDATA 'DK Easy Renamer\Logs\shell-preflight.log'
         if (Test-Path -LiteralPath $p) {
