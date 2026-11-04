@@ -72,7 +72,10 @@ function Invoke-Executable([string]$file,[string[]]$arguments) {
     }
 }
 function Assert-ShellState([int]$expected) {
-    $shell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $pwsh = Join-Path $env:ProgramFiles 'PowerShell\7\pwsh.exe'
+    $shell = if (Test-Path -LiteralPath $pwsh) { $pwsh } else {
+        Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    }
     $query = Join-Path $installDir 'Query-ShellState.ps1'
     $p = Start-Process -FilePath $shell -ArgumentList @(
         '-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
@@ -84,6 +87,12 @@ function Assert-ShellState([int]$expected) {
             throw 'Shell state check exceeded 60 seconds.'
         }
         if ($p.ExitCode -ne $expected) {
+            $preflightLog = Join-Path $env:LOCALAPPDATA 'DK Easy Renamer\Logs\shell-preflight.log'
+            if (Test-Path -LiteralPath $preflightLog) {
+                Write-Host '=== Shell preflight diagnostic ==='
+                Get-Content -LiteralPath $preflightLog -Tail 25 | ForEach-Object { Write-Host $_ }
+            }
+            Write-Host "Query executed with $shell"
             throw "Expected shell state $expected, got $($p.ExitCode)."
         }
         Write-Host "PASS shell state $expected"
