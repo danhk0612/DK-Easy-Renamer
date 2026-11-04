@@ -229,4 +229,37 @@ public sealed class RenameEngineTests
         Assert.Equal(source, plan.Items[0].TargetPath);
         Assert.Empty(plan.Errors);
     }
+    [Fact]
+    public void NumberOnlyReplacesStemButPreservesExtensionAndCanUndo()
+    {
+        using var f = new WorkFolder();
+        string first = f.File("18.svg", "first");
+        string second = f.File("19.svg", "second");
+        var selection = new[] { new RenameSelection(first), new RenameSelection(second) };
+        var plan = RenamePlanner.Build(selection, [
+            new SequenceRule(Start: 0, Step: 1, Width: 2, Separator: "_",
+                AtStart: true, ReplaceStem: true)
+        ]);
+        Assert.True(plan.IsValid, string.Join("; ", plan.Errors));
+        Assert.Equal("00.svg", Path.GetFileName(plan.Items[0].TargetPath));
+        Assert.Equal("01.svg", Path.GetFileName(plan.Items[1].TargetPath));
+
+        var applied = RenameExecutor.Apply(plan);
+        Assert.True(applied.Succeeded, string.Join("; ", applied.Errors));
+        Assert.Equal("first", System.IO.File.ReadAllText(plan.Items[0].TargetPath));
+        Assert.Equal("second", System.IO.File.ReadAllText(plan.Items[1].TargetPath));
+        Assert.True(RenameExecutor.Undo(applied.Undo!).Succeeded);
+        Assert.Equal("first", System.IO.File.ReadAllText(first));
+        Assert.Equal("second", System.IO.File.ReadAllText(second));
+    }
+
+    [Fact]
+    public void NumberPlacementDefaultAndSuffixRemainUnchanged()
+    {
+        var context = new RenameRuleContext(0, false, default, default);
+        var name = new RenameName("18", ".svg");
+        Assert.Equal("00_18.svg", new SequenceRule(Start: 0, Width: 2).Apply(name, context).FullName);
+        Assert.Equal("18_00.svg", new SequenceRule(Start: 0, Width: 2, AtStart: false).Apply(name, context).FullName);
+    }
+
 }

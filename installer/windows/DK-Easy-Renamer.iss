@@ -43,6 +43,10 @@ RestartApplications=no
 DisableProgramGroupPage=yes
 
 [Files]
+; Preflight extracted before copying any files, so an untrusted test certificate
+; blocks setup without leaving a half-installed app behind.
+Source: "{#SourcePath}\Preflight-Shell.ps1"; Flags: dontcopy noencryption
+Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; Flags: dontcopy noencryption
 Source: "{#PackageDir}\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Register-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
@@ -54,11 +58,42 @@ Source: "{#SourcePath}\..\..\THIRD_PARTY_LICENSES.md"; DestDir: "{app}"; Flags: 
 Name: "{autoprograms}\DK Easy Renamer"; Filename: "{app}\DK.EasyRenamer.App.exe"; IconFilename: "{app}\DK-Easy-Renamer.ico"
 
 [Code]
+function GetPowerShellExecutable(): String;
+begin
+  // Prefer PowerShell 7 when already installed, but do not make it a dependency.
+  // Some Windows Server builds ship a broken 32-bit Windows PowerShell security module.
+  Result := ExpandConstant('{pf}\PowerShell\7\pwsh.exe');
+  if not FileExists(Result) then
+    Result := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+end;
+
 #ifndef SignedBuild
 function InitializeSetup(): Boolean;
 begin
   MsgBox('This is an unsigned CI packaging candidate. It cannot register the Explorer extension. Obtain a trusted signed build for installation.', mbCriticalError, MB_OK);
   Result := False;
+end;
+#endif
+
+
+#ifdef SignedBuild
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Cmd: String;
+  ExitCode: Integer;
+begin
+  Result := '';
+  ExtractTemporaryFile('Preflight-Shell.ps1');
+  ExtractTemporaryFile('DKEasyRenamer.Shell.msix');
+  Cmd := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
+    ExpandConstant('{tmp}\Preflight-Shell.ps1') + '" -PackagePath "' +
+    ExpandConstant('{tmp}\DKEasyRenamer.Shell.msix') + '"';
+  if not Exec(GetPowerShellExecutable(),
+    Cmd, ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, ExitCode) then
+    Result := 'Could not start the MSIX certificate preflight. No app files were installed.'
+  else if ExitCode <> 0 then
+    Result := 'The MSIX certificate preflight failed. Check %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-preflight.log. ' +
+      'A self-signed test certificate must be explicitly trusted in LocalMachine\TrustedPeople. No app files were installed.';
 end;
 #endif
 
@@ -69,7 +104,7 @@ var
 begin
   Cmd := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
     ExpandConstant('{app}') + '\' + ScriptName + '" -InstallDir "' + ExpandConstant('{app}') + '"';
-  Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+  Result := Exec(GetPowerShellExecutable(),
     Cmd, ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ExitCode);
   if Result then
     Result := ExitCode = 0;
@@ -80,7 +115,7 @@ begin
   if CurStep = ssPostInstall then
   begin
     if not RunPowerShell('Register-Shell.ps1') then
-      RaiseException('Explorer menu registration failed. The signed MSIX must be trusted by Windows. See the installation guide.');
+      RaiseException('Explorer menu registration failed. Check %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-registration.log for the exact Windows Appx error code.');
   end;
 end;
 

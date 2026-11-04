@@ -16,7 +16,7 @@
 4. When modifying behavior, add focused automated tests and update corresponding specs/verification notes.
 5. Never run destructive tests against a real user directory; use ephemeral test fixtures. Do not overwrite or silently skip conflicts.
 6. Keep `Core` OS-UI-independent where practical. Keep native Explorer COM callbacks very light.
-7. Distinguish verified behavior from intended behavior: modern Explorer menu, installed shell extension and real-user workflow remain unverified until T04. Engine apply/undo is verified only in isolated automated filesystem fixtures.
+7. Distinguish user-confirmed Windows behavior from CI evidence: context-menu appearance and readable Korean title are verified on Windows 11; multi-selection handoff, actual GUI rename/Undo and complete uninstall remain unverified. Core apply/undo is tested only on disposable fixtures.
 8. A failed validation is a blocker to report, not a reason to mark the task complete.
 
 ## Stage boundaries
@@ -26,3 +26,6 @@
 - **T03:** Implement GUI, manual ordering, rule editing, WPF-UI theme and icon. CI compile and Core tests run now; actual visual and interactive workflow acceptance is deferred to T04 by user request.
 - **T05:** Build per-user installer and lifecycle scripts, identity consistency and signing configuration; automated unsigned package compiles but is not installable.
 - **T04 (last):** Validate real signed install/uninstall, Explorer and GUI, usability, paths and file operations on Windows 11. Do not claim shipping readiness before this gate.
+
+## Stable test signing security
+Private PFX/password must never be committed, printed, attached to chat or included in artifacts. Only the manually triggered job in the protected dev-signing GitHub environment may access the configured signing secrets. Certificate trust on a Windows test PC always requires deliberate administrative action.

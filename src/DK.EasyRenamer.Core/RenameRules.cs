@@ -50,7 +50,7 @@ public sealed record RemoveTextRule(string Text, bool IgnoreCase = false) : Rena
 }
 
 public sealed record SequenceRule(long Start = 1, long Step = 1, int Width = 3,
-    string Separator = "_", bool AtStart = true) : RenameRule
+    string Separator = "_", bool AtStart = true, bool ReplaceStem = false) : RenameRule
 {
     public override RenameName Apply(RenameName name, RenameRuleContext context)
     {
@@ -59,7 +59,7 @@ public sealed record SequenceRule(long Start = 1, long Step = 1, int Width = 3,
         string digits = number >= 0
             ? number.ToString(CultureInfo.InvariantCulture).PadLeft(Width, '0')
             : "-" + (-number).ToString(CultureInfo.InvariantCulture).PadLeft(Width, '0');
-        return name with { Stem = AtStart ? digits + Separator + name.Stem : name.Stem + Separator + digits };
+        return name with { Stem = ReplaceStem ? digits : AtStart ? digits + Separator + name.Stem : name.Stem + Separator + digits };
     }
 }
 

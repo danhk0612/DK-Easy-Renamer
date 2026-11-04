@@ -83,7 +83,7 @@ public sealed class RuleEditorItem : INotifyPropertyChanged
         RuleKind.Replace => "문자열 찾기 · 바꾸기",
         RuleKind.AddText => "접두어 / 접미어",
         RuleKind.RemoveText => "문자열 제거",
-        RuleKind.Sequence => "순번 붙이기",
+        RuleKind.Sequence => "순번 붙이기 / 이름 대체",
         RuleKind.Trim => "앞·뒤 N글자 제거",
         RuleKind.Slice => "위치·길이로 추출 / 제거",
         RuleKind.Case => "대소문자 변경",
@@ -104,6 +104,7 @@ public sealed class RuleEditorItem : INotifyPropertyChanged
     public string Text { get; set; } = "";
     public bool AtStart { get; set; } = true;
     public bool IgnoreCase { get; set; }
+    public int SequencePlacement { get; set; } // 0=prefix, 1=suffix, 2=replace stem
     public long StartNumber { get; set; } = 1;
     public long Step { get; set; } = 1;
     public int Width { get; set; } = 3;
@@ -124,7 +125,7 @@ public sealed class RuleEditorItem : INotifyPropertyChanged
         RuleKind.Replace => new ReplaceRule(Search, Replacement, IgnoreCase),
         RuleKind.AddText => new AddTextRule(Text, AtStart),
         RuleKind.RemoveText => new RemoveTextRule(Text, IgnoreCase),
-        RuleKind.Sequence => new SequenceRule(StartNumber, Step, Width, Separator, AtStart),
+        RuleKind.Sequence => new SequenceRule(StartNumber, Step, Width, Separator, SequencePlacement == 0, SequencePlacement == 2),
         RuleKind.Trim => new TrimCharactersRule(Count, AtStart),
         RuleKind.Slice => new SliceRule(SliceStart, SliceLength, KeepSlice),
         RuleKind.Case => new CaseRule(CaseChange),

@@ -51,8 +51,9 @@ public partial class MainWindow
                 AddIntegerInput("증가값", item.Step, v => item.Step = v);
                 AddIntegerInput("자릿수", item.Width, v => item.Width = checked((int)v));
                 AddTextInput("구분자", item.Separator, v => item.Separator = v);
-                AddBooleanInput("파일명 앞에 순번 (해제 시 뒤에 순번)",
-                    item.AtStart, v => item.AtStart = v);
+                AddOptions("순번 적용 방식", ["기존 이름 앞에 붙이기", "기존 이름 뒤에 붙이기", "기존 파일명 대체"],
+                    item.SequencePlacement, n => item.SequencePlacement = n);
+                AddNote("기존 파일명 대체 시 확장자는 그대로 유지되고 구분자는 적용하지 않습니다.");
                 break;
             case RuleKind.Trim:
                 AddIntegerInput("제거할 글자 수", item.Count, v => item.Count = checked((int)v));

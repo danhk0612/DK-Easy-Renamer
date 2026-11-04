@@ -2,7 +2,7 @@
 
 A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
 
-> **Status (2026-11-03):** T00–T03 are merged. T05 builds a per-user self-contained Windows setup with Sparse MSIX identity registration; unsigned CI candidates are deliberately **non-installable**. Actual signed installation, first-level Explorer menu and end-to-end UI are unverified until T04.
+> **Status (2026-11-04):** T00–T03 are merged. T05 builds a per-user self-contained Windows setup with Sparse MSIX identity registration; unsigned CI candidates are deliberately **non-installable**. Actual signed installation, first-level Explorer menu and end-to-end UI are unverified until T04.
 
 ## Product goals
 
@@ -61,3 +61,9 @@ A self-contained Windows 11 x64 setup can be compiled after the native C++ build
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+### Latest T04 visual fixes (test build 0.1.1)
+
+The sparse MSIX taskbar logo and native WPF window caption now match the original document/pencil branding: no temporary `DK` logo, and `DK Easy Renamer` title displayed with white text on a blue native title bar. See the [T04 implementation PR](https://github.com/danhk0612/DK-Easy-Renamer/pull/6) and [Windows 11 acceptance checklist](https://github.com/danhk0612/DK-Easy-Renamer/issues/7). Windows 11 visual acceptance remains to be confirmed before a production release.
+
+**0.1.1 automated verification:** [Windows CI + signed install/uninstall smoke](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41753265249) passed. Windows 11 taskbar/icon/titlebar visual review and rename/Undo workflow acceptance are tracked in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).

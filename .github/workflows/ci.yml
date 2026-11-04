@@ -6,9 +6,16 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      stable_dev_signing:
+        description: 'Build test installer with the reused protected certificate'
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-test:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.stable_dev_signing != true }}
     runs-on: windows-2022
     permissions:
       contents: read
@@ -22,6 +29,40 @@ jobs:
       - name: Generate app icon
         shell: pwsh
         run: ./tools/t03/Generate-Icon.ps1
+      - name: Validate T04 fixture scripts without Explorer or live files
+        shell: pwsh
+        run: |
+          foreach ($source in @(Get-ChildItem 'tools/t04' -Filter '*.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($source.FullName,[ref]$tokens,[ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw "Parse error in $($source.Name): $($errors[0])" }
+          }
+          # Validate the one-time certificate helper without generating or exporting any key.
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('tools/t05/New-StableDevCertificate.ps1',[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw "Stable certificate helper parse error: $($errors[0])" }
+          $created = ./tools/t04/New-TestFixtures.ps1
+          $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
+          if (-not $created.Root.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or
+              -not ([IO.Path]::GetFileName($created.Root).StartsWith('DK-EasyRenamer-T04-'))) {
+            throw 'Fixture generator did not return an isolated temp directory.'
+          }
+          try {
+            if ($created.FileCount -ne 11) { throw 'Unexpected fixture file count.' }
+            foreach ($file in @('file1.txt','file2.txt','file10.txt','한글 파일 03.txt','日本語 04.txt','_T04_MANIFEST.json')) {
+              if (-not (Test-Path -LiteralPath (Join-Path $created.Root $file))) {
+                throw "Fixture missing: $file"
+              }
+            }
+            if (-not (Test-Path -LiteralPath (Join-Path $created.Root '빈 폴더') -PathType Container)) {
+              throw 'Empty-folder fixture missing.'
+            }
+          }
+          finally {
+            Remove-Item -LiteralPath $created.Root -Recurse -Force
+          }
       - name: Restore
         run: dotnet restore DK-Easy-Renamer.sln
       - name: Build .NET app and Core
@@ -36,6 +77,16 @@ jobs:
           if (-not $msbuild) { throw 'MSBuild.exe not found in installed Visual Studio.' }
           & $msbuild 'src/DK.EasyRenamer.Shell/DK.EasyRenamer.Shell.vcxproj' /p:Configuration=Release /p:Platform=x64 /m
           if ($LASTEXITCODE -ne 0) { throw 'Native shell build failed.' }
+      - name: Verify native Explorer menu title Unicode
+        shell: pwsh
+        run: |
+          $binary = [IO.File]::ReadAllBytes('artifacts/t01/native/DK.EasyRenamer.Shell.dll')
+          $expectedTitle = 'DK Easy Renamer로 이름 변경'
+          $expected = [Text.Encoding]::Unicode.GetBytes($expectedTitle + [char]0)
+          if (-not [Convert]::ToHexString($binary).Contains([Convert]::ToHexString($expected))) {
+            throw "Native COM DLL does not contain the expected UTF-16 Korean menu title: $expectedTitle"
+          }
+          Write-Host "Verified native Explorer menu title: $expectedTitle"
       - name: Publish app
         run: dotnet publish src/DK.EasyRenamer.App/DK.EasyRenamer.App.csproj -c Release -r win-x64 --self-contained false -o artifacts/t01/app
       - name: Build unsigned identity MSIX
@@ -78,6 +129,15 @@ jobs:
           try {
             ./tools/t05/Build-Distribution.ps1 -CertificateThumbprint $cert.Thumbprint
             ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Signed
+            # A fresh runner has no trusted machine-level test certificate;
+            # the preflight must reject it before any installation.
+            $preflightFailure = $null
+            try {
+              ./installer/windows/Preflight-Shell.ps1 -PackagePath 'artifacts/t05/DKEasyRenamer.Shell.msix'
+            } catch { $preflightFailure = $_.ToString() }
+            if (-not $preflightFailure -or -not $preflightFailure.Contains('LOCAL MACHINE TrustedPeople')) {
+              throw 'Expected rejection of untrusted developer-signed MSIX before installation.'
+            }
             Export-Certificate -Cert $cert -FilePath 'artifacts/t05/installer/DKEasyRenamer-TEST-ONLY.cer' -Force | Out-Null
           }
           finally {
@@ -91,3 +151,132 @@ jobs:
             artifacts/t05/installer/
             artifacts/t05/DKEasyRenamer.Shell.msix
           retention-days: 7
+
+  stable-dev-sign:
+    # Explicit operator action and protected GitHub environment only.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.stable_dev_signing == true }}
+    runs-on: windows-2022
+    environment: dev-signing
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout selected reviewed branch
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Generate branded icon
+        shell: pwsh
+        run: ./tools/t03/Generate-Icon.ps1
+      - name: Restore, build and test
+        shell: pwsh
+        run: |
+          dotnet restore DK-Easy-Renamer.sln
+          if ($LASTEXITCODE -ne 0) { throw 'Restore failed.' }
+          dotnet build DK-Easy-Renamer.sln -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+          dotnet test DK-Easy-Renamer.sln -c Release --no-build
+          if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
+      - name: Build native x64 Explorer COM DLL
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $msbuild = & $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+          if (-not $msbuild) { throw 'MSBuild.exe not found.' }
+          & $msbuild 'src/DK.EasyRenamer.Shell/DK.EasyRenamer.Shell.vcxproj' /p:Configuration=Release /p:Platform=x64 /m
+          if ($LASTEXITCODE -ne 0) { throw 'Native DLL build failed.' }
+      - name: Verify Korean menu title in DLL
+        shell: pwsh
+        run: |
+          $binary = [IO.File]::ReadAllBytes('artifacts/t01/native/DK.EasyRenamer.Shell.dll')
+          $expected = [Text.Encoding]::Unicode.GetBytes('DK Easy Renamer로 이름 변경' + [char]0)
+          if (-not [Convert]::ToHexString($binary).Contains([Convert]::ToHexString($expected))) {
+            throw 'Compiled DLL contains the wrong Unicode menu title.'
+          }
+      - name: Install Inno Setup 6
+        shell: pwsh
+        run: |
+          $compiler = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $compiler)) {
+            choco install innosetup --version=6.7.1 --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
+          }
+          if (-not (Test-Path -LiteralPath $compiler)) { throw 'ISCC.exe not found.' }
+      - name: Sign with protected persistent development certificate
+        shell: pwsh
+        env:
+          DK_PFX_BASE64: ${{ secrets.DK_DEV_SIGNING_PFX_BASE64 }}
+          DK_PFX_PASSWORD: ${{ secrets.DK_DEV_SIGNING_PFX_PASSWORD }}
+          DK_EXPECTED_THUMBPRINT: ${{ vars.DK_DEV_SIGNING_THUMBPRINT }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:DK_PFX_BASE64) -or
+              [string]::IsNullOrWhiteSpace($env:DK_PFX_PASSWORD) -or
+              $env:DK_EXPECTED_THUMBPRINT -notmatch '^[0-9a-fA-F]{40}$') {
+            throw 'dev-signing secrets and pinned public thumbprint have not been configured.'
+          }
+          $tempPfx = Join-Path $env:RUNNER_TEMP 'dk-renamer-private-signing.pfx'
+          $cert = $null
+          try {
+            [IO.File]::WriteAllBytes($tempPfx,[Convert]::FromBase64String($env:DK_PFX_BASE64))
+            $password = ConvertTo-SecureString -String $env:DK_PFX_PASSWORD -AsPlainText -Force
+            $imported = @(Import-PfxCertificate -FilePath $tempPfx -Password $password -CertStoreLocation 'Cert:\CurrentUser\My' -ErrorAction Stop)
+            $matching = @($imported | Where-Object { $_.HasPrivateKey -and $_.Subject -eq 'CN=DK Easy Renamer Development' })
+            if ($matching.Count -ne 1) { throw 'Expected one code signing cert with the required publisher.' }
+            $cert = $matching[0]
+            if ($cert.Thumbprint -ne $env:DK_EXPECTED_THUMBPRINT.ToUpperInvariant()) {
+              throw 'PFX thumbprint differs from pinned certificate thumbprint. Rotation not authorized.'
+            }
+            if ($cert.NotBefore -gt (Get-Date) -or $cert.NotAfter -le (Get-Date).AddDays(30)) {
+              throw 'Development certificate is not yet valid, expired or nearly expired.'
+            }
+            # Remove secret material from the environment before starting build tools.
+            Remove-Item Env:DK_PFX_BASE64,Env:DK_PFX_PASSWORD -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $tempPfx -Force
+
+            ./tools/t05/Build-Distribution.ps1 -CertificateThumbprint $cert.Thumbprint
+            ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Signed
+
+            $publicCer = 'artifacts/t05/installer/DKEasyRenamer-STABLE-DEV.cer'
+            Export-Certificate -Cert $cert -FilePath $publicCer -Force | Out-Null
+            if ((Get-PfxCertificate -FilePath $publicCer).Thumbprint -ne $env:DK_EXPECTED_THUMBPRINT.ToUpperInvariant()) {
+              throw 'Public certificate fingerprint mismatch.'
+            }
+            Write-Host "TEST-ONLY installer used the pinned public certificate fingerprint: $($cert.Thumbprint)"
+          }
+          finally {
+            Remove-Item -LiteralPath $tempPfx -Force -ErrorAction SilentlyContinue
+            Remove-Item Env:DK_PFX_BASE64,Env:DK_PFX_PASSWORD -ErrorAction SilentlyContinue
+            if ($null -ne $cert) {
+              Remove-Item -LiteralPath ('Cert:\CurrentUser\My\' + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue
+            }
+          }
+      - name: Upload fixed-certificate test installer (never upload PFX)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-STABLE-DEV-SIGNED-TEST-ONLY
+          path: |
+            artifacts/t05/installer/
+            artifacts/t05/DKEasyRenamer.Shell.msix
+          retention-days: 7
+
+  smoke-signed-installer:
+    name: CI smoke - signed install and uninstall on Windows Server 2025
+    needs: build-test
+    runs-on: windows-2025
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Download signed test package and matching public certificate
+        uses: actions/download-artifact@v4
+        with:
+          name: t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST
+          path: ${{ runner.temp }}/dk-signed-probe
+      - name: Exercise real package registration and uninstall in disposable VM
+        shell: pwsh
+        run: ./tools/t04/Smoke-InstallerOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-signed-probe/installer"

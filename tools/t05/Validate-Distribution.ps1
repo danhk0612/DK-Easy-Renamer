@@ -25,6 +25,18 @@ foreach ($file in @(
 )) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing required T05 artifact: $file" }
 }
+# A packaged WPF app's taskbar glyph comes from the MSIX Square44x44Logo.
+# Reject the older placeholder (an opaque blue square with the letters DK).
+Add-Type -AssemblyName System.Drawing
+foreach ($logo in @('Square44x44Logo.png','Square150x150Logo.png','StoreLogo.png')) {
+    $bitmap = [System.Drawing.Bitmap]::new((Join-Path $app ('Assets\' + $logo)))
+    try {
+        if ($bitmap.GetPixel(0,0).A -ne 0) {
+            throw "Taskbar/logo asset is not transparent branded artwork: $logo"
+        }
+    }
+    finally { $bitmap.Dispose() }
+}
 [xml]$sparse = Get-Content (Join-Path $identity 'AppxManifest.xml') -Raw
 [xml]$sourceSxs = Get-Content (Join-Path $identity 'app.manifest') -Raw
 $pkg = $sparse.SelectSingleNode('/*[local-name()="Package"]/*[local-name()="Identity"]')
@@ -79,6 +91,7 @@ finally { $zip.Dispose() }
 
 foreach ($script in @(
     'installer\windows\Register-Shell.ps1',
+    'installer\windows\Preflight-Shell.ps1',
     'installer\windows\Unregister-Shell.ps1',
     'tools\t05\Build-Distribution.ps1'
 )) {

@@ -12,7 +12,7 @@ A trusted certificate is a hard requirement for a functioning installed Explorer
 
 Without a signing certificate, Build-Distribution.ps1 creates an **UNSIGNED-DO-NOT-INSTALL** installer candidate. It compiles and its files are inspectable, but its InitializeSetup deliberately blocks installation. For final Windows 11 testing, CI additionally generates a short-lived **non-exportable self-signed developer certificate** in its temporary runner store, signs a separately labeled **SIGNED-PROBE** installer, exports only the **public .cer**, and removes the private-key certificate from the runner. No private key or password is uploaded, and no automatic trust is granted on a user's PC.
 
-Optionally provide -Publisher 'CN=<actual certificate Subject>' and -CertificateThumbprint '<cert in CurrentUser/My with private key>' to sign the external EXE, native DLL and MSIX. Inno Setup's SignTool directive signs the installer, uninstaller and Setup's temporary copies. The certificate must be trusted by the target Windows account. The signed output remains a **SIGNED-PROBE** pending real installation, trust-chain confirmation, removal/upgrade and SmartScreen reputation review. Do not publish to users from CI.
+Optionally provide -Publisher 'CN=<actual certificate Subject>' and -CertificateThumbprint '<cert in CurrentUser/My with private key>' to sign the external EXE, native DLL and MSIX. Inno Setup's SignTool directive signs the installer, uninstaller and Setup's temporary copies. The certificate must be trusted by the target Windows account. The signed output remains a **SIGNED-PROBE** pending real installation, trust-chain confirmation, removal/upgrade and SmartScreen reputation review. It prechecks the self-signed package certificate in LocalMachine TrustedPeople before writing any app files, and does not import certificates automatically. Do not publish to users from CI.
 
 A temporary self-signed certificate is acceptable only on an isolated test machine with explicit trust. Public distribution requires a trusted signing solution; a new publisher may still trigger SmartScreen warnings until reputation is established.
 
@@ -34,9 +34,9 @@ Run locally on Windows 11 with .NET 10 SDK, C++ Build Tools / Windows SDK and In
     powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t05\Build-Distribution.ps1
     powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t05\Validate-Distribution.ps1
 
-Output: artifacts/t05/installer/DK-Easy-Renamer-0.1.0-x64-UNSIGNED-DO-NOT-INSTALL.exe, artifacts/t05/DKEasyRenamer.Shell.msix, SHA256SUMS.txt.
+Output: artifacts/t05/installer/DK-Easy-Renamer-0.1.1-x64-UNSIGNED-DO-NOT-INSTALL.exe, artifacts/t05/DKEasyRenamer.Shell.msix, SHA256SUMS.txt.
 
-For a signed local test build, call Build-Distribution.ps1 with -Publisher matching the exact code-signing cert subject and -CertificateThumbprint, then explicitly trust the certificate on that test machine before installation. Alternatively, obtain the CI artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** containing the test-only signed installer and **DKEasyRenamer-TEST-ONLY.cer**. On an isolated test PC, inspect that public certificate, then *explicitly* import it into CurrentUser\TrustedPeople before launching the signed installer; remove the certificate after testing. Never trust certificates from unverified sources or upload private keys/passwords.
+For a signed local test build, call Build-Distribution.ps1 with -Publisher matching the exact code-signing cert subject and -CertificateThumbprint, then explicitly trust the certificate on that test machine before installation. Alternatively, obtain the CI artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** containing the test-only signed installer and **DKEasyRenamer-TEST-ONLY.cer**. On an isolated test PC, inspect that public certificate, then *explicitly* import it into LocalMachine\TrustedPeople using elevated PowerShell before launching the signed installer; remove the certificate after testing. Never trust certificates from unverified sources or upload private keys/passwords.
 
 ## Mandatory T04 real-device acceptance
 - On Windows 11 x64 ordinary user: signed probe setup installs without privilege elevation, exact package identity and first-level Explorer action appears.
@@ -54,3 +54,77 @@ If any real-world test fails, repair it in T04 before publishing. T05 is not rel
 - Microsoft: https://learn.microsoft.com/en-us/powershell/module/appx/add-appxpackage?view=windows-11
 - Inno: https://jrsoftware.org/ishelp/topic_setup_privilegesrequired.htm
 - Inno: https://jrsoftware.org/ishelp/topic_scriptevents.htm
+
+## Confirmed installation issue (2026-11-03)
+
+A Windows 11 tester reported `0x800B0109` from `Get-AppxLog`: MSIX self-signed certificate untrusted. Earlier builds copied EXE files before attempting shell registration. Updated signed builds call `Preflight-Shell.ps1` from Inno Setup `PrepareToInstall` and stop without copying files when machine-level certificate trust is missing. The test `.cer` must come from the same signed-probe build. In an isolated test machine, **inspect the certificate and approve its trust** using elevated PowerShell:
+
+    Import-Certificate -FilePath .\DKEasyRenamer-TEST-ONLY.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+
+After testing, remove only that certificate's exact thumbprint from the same LocalMachine store. The installer never changes the certificate store itself. Other registration failures still require AppxLog review.
+
+
+## Stable development signing for repeatable T04 installers (preferred)
+
+Automatic pull-request CI still generates a disposable development certificate for signing-path verification; its public .cer changes each run. For repeated Windows 11 installation tests use the separate manual stable-dev-sign job in the Windows CI workflow. It reuses one certificate.
+
+### One-time certificate creation (trusted Windows PC)
+
+From a local checkout of the T04 branch, choose a PRIVATE directory outside the Git repository:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t05\New-StableDevCertificate.ps1 -OutputDirectory "$env:USERPROFILE\Documents\DK-Renamer-Private"
+
+Enter a strong PFX password and store it securely. This creates:
+- DKEasyRenamer-STABLE-DEV.pfx — PRIVATE signing key. Never commit, attach, send in chat or distribute.
+- DKEasyRenamer-STABLE-DEV.cer — public-only test certificate.
+- A public SHA-1 certificate thumbprint (40 hex characters), printed by the generator.
+
+Keep the same PFX for repeated development builds; do not regenerate it per CI run.
+
+### One-time GitHub environment configuration
+
+In GitHub Settings > Environments, create an environment named dev-signing. Require approval for access to its secrets where supported and restrict permitted branches. Review the selected branch before approving a signing run.
+
+With GitHub CLI installed and authenticated, register the PFX as a secret without printing it to the console:
+
+    $repo = 'danhk0612/DK-Easy-Renamer'
+    $pfx = "$env:USERPROFILE\Documents\DK-Renamer-Private\DKEasyRenamer-STABLE-DEV.pfx"
+    [Convert]::ToBase64String([IO.File]::ReadAllBytes($pfx)) | gh secret set DK_DEV_SIGNING_PFX_BASE64 --env dev-signing -R $repo
+
+Enter the SAME PFX password using the interactive CLI prompt:
+
+    gh secret set DK_DEV_SIGNING_PFX_PASSWORD --env dev-signing -R $repo
+
+Set the publicly known thumbprint as an environment variable (replace FINGERPRINT with the generator's exact 40 characters):
+
+    gh variable set DK_DEV_SIGNING_THUMBPRINT --body 'FINGERPRINT' --env dev-signing -R $repo
+
+After reviewing the branch, run the existing registered Windows build workflow manually:
+
+    gh workflow run ci.yml --ref work/t04-windows-acceptance -f stable_dev_signing=true -R $repo
+
+If required, approve the protected dev-signing environment job. Only this manually triggered job can read the environment secrets; ordinary pull-request CI cannot. It validates the expected subject, private key, pinned thumbprint and expiry, removes the temporary PFX and imported signing certificate from the runner, and uploads the separate artifact t05-STABLE-DEV-SIGNED-TEST-ONLY. The artifact includes the signed test installer, MSIX, SHA256 checksums and PUBLIC certificate. No PFX/private key or password is uploaded.
+
+### Windows 11 trust and repeat tests
+
+Verify installer origin/signature and public certificate match first. On an isolated Windows 11 test device only, a user may explicitly trust the public certificate in an elevated PowerShell:
+
+    Import-Certificate -FilePath .\DKEasyRenamer-STABLE-DEV.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+
+Future builds signed with the SAME pinned key do not require repeating that trust step. The native DLL still needs an Explorer refresh/restart after updates. When finished testing, remove only this certificate's exact thumbprint from the machine store. Never automatically trust a new key, and never use this self-signed test identity for public release.
+
+If dev-signing secrets are not configured, the stable signing job fails safely; code changes alone cannot create or upload a private credential.
+
+References:
+- https://docs.github.com/en/actions/concepts/security/secrets
+- https://cli.github.com/manual/gh_secret_set
+- https://cli.github.com/manual/gh_variable_set
+- https://learn.microsoft.com/en-us/windows/msix/package/sign-msix-package-guide
+
+## Branding for package identity (T04)
+
+Unlike the WPF window icon, the Windows taskbar uses the `Square44x44Logo.png` declared in `AppxManifest.xml` after sparse package registration. The builder now resizes the original 256px document/pencil PNG to all three MSIX visual logos, removing the previous `DK` text placeholder. The WPF window inherits the original ICO through the ApplicationIcon build setting. The 0.1.1 test version prevents mixing new assets with the old 0.1.0 package identity. After updating, restart Explorer/sign out if taskbar pinning caches the old glyph; remove/re-pin an old shortcut only when needed.
+
+## Windows Server 2025 package lifecycle CI
+
+A disposable CI VM imports the matching public test certificate, installs the 0.1.1 signed probe, checks Appx/COM/app paths, uninstalls and checks cleanup, then removes its temporary certificate trust. [Successful smoke run](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41752486153). The installer chooses an already installed PowerShell 7 when present, otherwise falls back to built-in Windows PowerShell 5.1. PowerShell 7 is NOT required on a Windows 11 test PC. Windows 11 interactive appearance, update and user workflows still require physical confirmation.
