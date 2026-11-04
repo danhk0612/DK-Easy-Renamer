@@ -104,8 +104,7 @@ var
 begin
   Cmd := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
     ExpandConstant('{app}') + '\' + ScriptName + '" -InstallDir "' + ExpandConstant('{app}') + '"';
-  // The Appx module is native to Windows PowerShell 5.1; do not switch it to pwsh 7.
-  Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+  Result := Exec(GetPowerShellExecutable(),
     Cmd, ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ExitCode);
   if Result then
     Result := ExitCode = 0;
