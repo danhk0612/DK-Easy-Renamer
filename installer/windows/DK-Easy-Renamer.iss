@@ -189,9 +189,13 @@ begin
     else
     #endif
     begin
-      // Reinstall with the option unchecked explicitly removes prior registration.
-      if not RunPowerShell('Unregister-Shell.ps1') then
-        RaiseException('Explorer menu removal failed. The application files remain installed.');
+      // On a fresh app-only install there is nothing to remove. Avoid invoking
+      // package deployment PowerShell when no registration belongs to this user.
+      if RegKeyExists(HKCU, 'Software\DKEasyRenamer') then
+      begin
+        if not RunPowerShell('Unregister-Shell.ps1') then
+          RaiseException('Explorer menu removal failed. The application files remain installed.');
+      end;
     end;
   end;
 end;
@@ -200,7 +204,10 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
   begin
-    if not RunPowerShell('Unregister-Shell.ps1') then
-      RaiseException('Explorer menu removal failed; uninstall stopped to avoid orphan registrations.');
+    if RegKeyExists(HKCU, 'Software\DKEasyRenamer') then
+    begin
+      if not RunPowerShell('Unregister-Shell.ps1') then
+        RaiseException('Explorer menu removal failed; uninstall stopped to avoid orphan registrations.');
+    end;
   end;
 end;
