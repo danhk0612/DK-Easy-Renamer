@@ -4,6 +4,7 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="DK Easy Renamer"
+        Loaded="OnShellMenuLoaded"
         SourceInitialized="OnWindowSourceInitialized" Width="1150" Height="750" MinWidth="870" MinHeight="580"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource TitleBrush}"
@@ -56,6 +57,8 @@
                            FontSize="12" Margin="0,3,0,0" Foreground="{DynamicResource MutedBrush}" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="ShellMenuButton" Content="우클릭 메뉴 확인 중" Click="OnToggleShellMenu"
+                        IsEnabled="False" Margin="0,0,10,0" ToolTip="탐색기 우클릭 메뉴 등록 상태 확인" />
                 <Button x:Name="CheckUpdatesButton" Content="업데이트 확인" Click="OnCheckUpdates"
                         ToolTip="공식 GitHub 정식 릴리스에서 새 버전 확인" Margin="0,0,10,0" />
                 <Button Click="OnToggleTheme" ToolTip="라이트 / 다크 테마 전환" Margin="0,0,10,0" MinWidth="40">
