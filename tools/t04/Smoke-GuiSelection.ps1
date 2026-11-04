@@ -26,7 +26,7 @@ function Get-UiNames($root) {
         $name = $nodes.Item($i).Current.Name
         if (-not [string]::IsNullOrWhiteSpace($name)) { $names.Add($name) }
     }
-    return ,$names.ToArray()
+    return $names.ToArray()
 }
 
 function New-SelectionPacket([string[]]$paths) {
@@ -72,6 +72,11 @@ function Open-SelectionGui([string[]]$paths) {
         $grid = Find-AutomationId $gui 'FilesGrid'
         if ($null -ne $grid) { break }
         Start-Sleep -Milliseconds 250
+    }
+    $caption = Find-AutomationId $gui 'VisibleWindowCaption'
+    if ($null -eq $caption -or $caption.Current.Name -ne 'DK Easy Renamer' -or $caption.Current.IsOffscreen) {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        throw 'The WPF-rendered top title is missing, incorrect or offscreen.'
     }
     if ($null -eq $grid) {
         $names = Get-UiNames $gui
