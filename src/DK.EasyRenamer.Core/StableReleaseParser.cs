@@ -7,7 +7,7 @@ namespace DK.EasyRenamer.Core;
 /// The official GitHub latest stable release is an update *notice*, never a command to execute.
 /// This type intentionally exposes only the official, validated release page link.
 /// </summary>
-public sealed record StableRelease(Version Version, string Tag, Uri ReleasePage);
+public sealed record StableRelease(Version Version, string Tag, Uri ReleasePage, string ReleaseNotes);
 
 public static class StableReleaseParser
 {
@@ -49,7 +49,13 @@ public static class StableReleaseParser
             !string.Equals(url.AbsolutePath, ReleasePath + rawTag, StringComparison.Ordinal))
             return null;
 
-        return new StableRelease(version, rawTag, url);
+        // Release notes are display-only text. Do not treat URLs or Markdown as commands.
+        string notes = root.TryGetProperty("body", out var body) &&
+            body.ValueKind == JsonValueKind.String
+            ? body.GetString()?.Trim() ?? string.Empty
+            : string.Empty;
+
+        return new StableRelease(version, rawTag, url, notes);
     }
 
     public static bool HasUpdate(StableRelease latest, Version installed) =>
