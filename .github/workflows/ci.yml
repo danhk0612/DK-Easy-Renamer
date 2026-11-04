@@ -153,6 +153,17 @@ jobs:
             artifacts/t05/identity/
             artifacts/t05/DKEasyRenamer.Shell.msix
           retention-days: 7
+      - name: Build explicit unsigned standalone app-only installer (TEST ONLY)
+        shell: pwsh
+        run: |
+          ./tools/t05/Build-Distribution.ps1 -AppOnly
+          ./tools/t05/Validate-Distribution.ps1 -ExpectedMode AppOnly
+      - name: Upload unsigned standalone-only test setup (NOT a public release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-UNSIGNED-APP-ONLY-TEST-ONLY
+          path: artifacts/t05/installer/
+          retention-days: 7
       - name: Build isolated developer-signed setup (NOT a public release)
         shell: pwsh
         run: |
@@ -386,6 +397,11 @@ jobs:
         with:
           name: t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST
           path: ${{ runner.temp }}/dk-optional-shell-probe
-      - name: Test no-trust standalone app, then optional shell registration and removal
+      - name: Download unsigned standalone-only test setup
+        uses: actions/download-artifact@v4
+        with:
+          name: t05-UNSIGNED-APP-ONLY-TEST-ONLY
+          path: ${{ runner.temp }}/dk-app-only-probe
+      - name: Test app-only and no-trust installation, then optional shell registration and removal
         shell: pwsh
-        run: ./tools/t04/Smoke-OptionalShellOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-optional-shell-probe/installer"
+        run: ./tools/t04/Smoke-OptionalShellOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-optional-shell-probe/installer" -AppOnlyArtifactFolder "$env:RUNNER_TEMP/dk-app-only-probe"
