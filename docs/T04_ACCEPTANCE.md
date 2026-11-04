@@ -149,3 +149,10 @@ This is automated Windows Server 2025 package lifecycle proof, NOT Windows 11 GU
 ## Automated implementation vs real Windows 11 acceptance
 
 Implementation PR #6 can merge after automated gates. **This does not close Windows 11 acceptance.** The actual Windows 11 tasks remain in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7) until evidence is recorded; no public Release/tag or claim of complete readiness beforehand.
+
+
+## CI integrated Explorer-selection GUI smoke (T04 follow-up)
+
+The ephemeral Windows Server 2025 runner starts the installed WPF app with the same DKR1 UTF-16LE binary transport packet as the native Explorer COM verb. The script uses only newly generated test fixtures under TEMP (regular file, Korean and Japanese filenames, and an empty folder). Windows UI Automation checks all four paths appear in the live WPF FilesGrid, confirms the native title and consumed packet removal, and checks no test file contents changed on open. It closes only its own test process and deletes only its generated fixtures.
+
+This is app-side handoff and GUI list evidence, not proof that the real Windows 11 shell menu invokes the COM command. Actual user-device menu invocation, Apply/Undo and light/dark visual appearance remain separate acceptance items.
