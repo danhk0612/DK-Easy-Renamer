@@ -89,7 +89,17 @@ function Assert-ShellState([int]$expected) {
 try {
     Write-Host 'PHASE 1: unsigned APP-ONLY installation without certificate' 
     # The intentionally unsigned, standalone-only package can install without any certificate.
-    Invoke-Executable $appOnlySetups[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+    $appOnlyLog = Join-Path $env:RUNNER_TEMP 'dk-app-only-install.log'
+    try {
+        Invoke-Executable $appOnlySetups[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',("/LOG="+$appOnlyLog))
+    }
+    catch {
+        if (Test-Path -LiteralPath $appOnlyLog) {
+            Write-Host '=== Inno app-only setup diagnostics ==='
+            Get-Content -LiteralPath $appOnlyLog -Tail 75 | ForEach-Object { Write-Host $_ }
+        }
+        throw
+    }
     Assert-ApplicationOnly
     Assert-ShellState 2
     Invoke-Executable $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
