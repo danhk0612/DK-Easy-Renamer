@@ -11,6 +11,13 @@ namespace
 {
     constexpr CLSID CommandClsid =
         {0x73f9a0e1, 0x982d, 0x4c4e, {0xab, 0x20, 0x98, 0x7d, 0xca, 0x14, 0xe9, 0x30}};
+    constexpr CLSID QuickGroupClsid =
+        {0xa01d3977, 0x7390, 0x4e7a, {0xab, 0x4e, 0x14, 0x6a, 0x28, 0xb7, 0x1f, 0x9c}};
+    constexpr CLSID QuickSequenceGuid =
+        {0xa01d3978, 0x7390, 0x4e7a, {0xab, 0x4e, 0x14, 0x6a, 0x28, 0xb7, 0x1f, 0x9c}};
+    constexpr CLSID QuickReplaceGuid =
+        {0xa01d3979, 0x7390, 0x4e7a, {0xab, 0x4e, 0x14, 0x6a, 0x28, 0xb7, 0x1f, 0x9c}};
+    enum class CommandKind { Editor, QuickGroup, Sequence, Replace };
     volatile LONG objectCount = 0;
     volatile LONG lockCount = 0;
 
@@ -35,7 +42,7 @@ namespace
         return WriteFile(file, bytes, count, &written, nullptr) && written == count;
     }
 
-    HRESULT LaunchWithSelection(const std::vector<std::wstring>& paths)
+    HRESULT LaunchWithSelection(const std::vector<std::wstring>& paths, CommandKind kind)
     {
         if (paths.empty() || paths.size() > 10000) return E_INVALIDARG;
         std::wstring app;
@@ -85,6 +92,8 @@ namespace
 
         // Explicit lpApplicationName avoids parsing ambiguities with spaces.
         std::wstring cmd = L"\"" + app + L"\" --selection-file \"" + packet + L"\"";
+        if (kind == CommandKind::Sequence) cmd += L" --quick-mode sequence";
+        if (kind == CommandKind::Replace) cmd += L" --quick-mode replace";
         std::vector<wchar_t> command(cmd.begin(), cmd.end());
         command.push_back(L'\0');
         STARTUPINFOW startup = {};
@@ -105,8 +114,9 @@ namespace
     class ExplorerCommand final : public IExplorerCommand
     {
         volatile LONG refs_ = 1;
+        CommandKind kind_;
     public:
-        ExplorerCommand() { InterlockedIncrement(&objectCount); }
+        explicit ExplorerCommand(CommandKind kind) : kind_(kind) { InterlockedIncrement(&objectCount); }
         ~ExplorerCommand() { InterlockedDecrement(&objectCount); }
 
         HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** output) override
@@ -134,7 +144,23 @@ namespace
         HRESULT STDMETHODCALLTYPE GetTitle(IShellItemArray*, LPWSTR* title) override
         {
             if (!title) return E_POINTER;
-            return SHStrDupW(L"DK Easy Renamer\uB85C \uC774\uB984 \uBCC0\uACBD", title);
+            const wchar_t* label = nullptr;
+            switch (kind_)
+            {
+            case CommandKind::Editor:
+                label = L"DK Easy Renamer\uB85C \uC774\uB984 \uBCC0\uACBD";
+                break;
+            case CommandKind::QuickGroup:
+                label = L"DK Easy Renamer \uBE60\uB978 \uC791\uC5C5";
+                break;
+            case CommandKind::Sequence:
+                label = L"\uBE60\uB978 \uC21C\uBC88 \uBCC0\uACBD...";
+                break;
+            case CommandKind::Replace:
+                label = L"\uBE60\uB978 \uCC3E\uAE30\u00B7\uBC14\uAFB8\uAE30...";
+                break;
+            }
+            return SHStrDupW(label, title);
         }
         HRESULT STDMETHODCALLTYPE GetIcon(IShellItemArray*, LPWSTR* icon) override
         {
@@ -153,7 +179,13 @@ namespace
         HRESULT STDMETHODCALLTYPE GetCanonicalName(GUID* value) override
         {
             if (!value) return E_POINTER;
-            *value = CommandClsid;
+            switch (kind_)
+            {
+            case CommandKind::Editor: *value = CommandClsid; break;
+            case CommandKind::QuickGroup: *value = QuickGroupClsid; break;
+            case CommandKind::Sequence: *value = QuickSequenceGuid; break;
+            case CommandKind::Replace: *value = QuickReplaceGuid; break;
+            }
             return S_OK;
         }
         HRESULT STDMETHODCALLTYPE GetState(IShellItemArray* items, BOOL, EXPCMDSTATE* state) override
@@ -166,6 +198,7 @@ namespace
         }
         HRESULT STDMETHODCALLTYPE Invoke(IShellItemArray* items, IBindCtx*) override
         {
+            if (kind_ == CommandKind::QuickGroup) return E_NOTIMPL;
             if (!items) return E_INVALIDARG;
             DWORD count = 0;
             HRESULT hr = items->GetCount(&count);
@@ -185,27 +218,99 @@ namespace
                 paths.emplace_back(text);
                 CoTaskMemFree(text);
             }
-            return LaunchWithSelection(paths);
+            return LaunchWithSelection(paths, kind_);
         }
         HRESULT STDMETHODCALLTYPE GetFlags(EXPCMDFLAGS* value) override
         {
             if (!value) return E_POINTER;
-            *value = ECF_DEFAULT;
+            *value = kind_ == CommandKind::QuickGroup ? ECF_HASSUBCOMMANDS : ECF_DEFAULT;
             return S_OK;
         }
-        HRESULT STDMETHODCALLTYPE EnumSubCommands(IEnumExplorerCommand** commands) override
+        HRESULT STDMETHODCALLTYPE EnumSubCommands(IEnumExplorerCommand** commands) override;
+    };
+
+    // The editor command keeps the original single-click Explorer entry. The separate
+    // "quick actions" command exposes two child commands without loading WPF in Explorer.
+    class QuickCommandsEnumerator final : public IEnumExplorerCommand
+    {
+        volatile LONG refs_ = 1;
+        ULONG index_;
+    public:
+        explicit QuickCommandsEnumerator(ULONG index = 0) : index_(index) { InterlockedIncrement(&objectCount); }
+        ~QuickCommandsEnumerator() { InterlockedDecrement(&objectCount); }
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** output) override
         {
-            if (!commands) return E_POINTER;
-            *commands = nullptr;
-            return E_NOTIMPL;
+            if (!output) return E_POINTER;
+            *output = nullptr;
+            if (IsEqualIID(iid, IID_IUnknown) || IsEqualIID(iid, IID_IEnumExplorerCommand))
+            {
+                *output = static_cast<IEnumExplorerCommand*>(this);
+                AddRef();
+                return S_OK;
+            }
+            return E_NOINTERFACE;
+        }
+        ULONG STDMETHODCALLTYPE AddRef() override { return static_cast<ULONG>(InterlockedIncrement(&refs_)); }
+        ULONG STDMETHODCALLTYPE Release() override
+        {
+            LONG remaining = InterlockedDecrement(&refs_);
+            if (!remaining) delete this;
+            return static_cast<ULONG>(remaining);
+        }
+        HRESULT STDMETHODCALLTYPE Next(ULONG count, IExplorerCommand** output, ULONG* fetched) override
+        {
+            if (!output || (count > 1 && !fetched)) return E_POINTER;
+            if (fetched) *fetched = 0;
+            ULONG produced = 0;
+            while (produced < count && index_ < 2)
+            {
+                CommandKind kind = index_++ == 0 ? CommandKind::Sequence : CommandKind::Replace;
+                auto* command = new (std::nothrow) ExplorerCommand(kind);
+                if (!command)
+                {
+                    while (produced > 0) output[--produced]->Release();
+                    return E_OUTOFMEMORY;
+                }
+                output[produced++] = command;
+            }
+            if (fetched) *fetched = produced;
+            return produced == count ? S_OK : S_FALSE;
+        }
+        HRESULT STDMETHODCALLTYPE Skip(ULONG count) override
+        {
+            ULONG remaining = 2 - index_;
+            if (count > remaining)
+            {
+                index_ = 2;
+                return S_FALSE;
+            }
+            index_ += count;
+            return S_OK;
+        }
+        HRESULT STDMETHODCALLTYPE Reset() override { index_ = 0; return S_OK; }
+        HRESULT STDMETHODCALLTYPE Clone(IEnumExplorerCommand** output) override
+        {
+            if (!output) return E_POINTER;
+            *output = new (std::nothrow) QuickCommandsEnumerator(index_);
+            return *output ? S_OK : E_OUTOFMEMORY;
         }
     };
+
+    HRESULT ExplorerCommand::EnumSubCommands(IEnumExplorerCommand** commands)
+    {
+        if (!commands) return E_POINTER;
+        *commands = nullptr;
+        if (kind_ != CommandKind::QuickGroup) return E_NOTIMPL;
+        *commands = new (std::nothrow) QuickCommandsEnumerator;
+        return *commands ? S_OK : E_OUTOFMEMORY;
+    }
 
     class CommandFactory final : public IClassFactory
     {
         volatile LONG refs_ = 1;
+        CommandKind kind_;
     public:
-        CommandFactory() { InterlockedIncrement(&objectCount); }
+        explicit CommandFactory(CommandKind kind) : kind_(kind) { InterlockedIncrement(&objectCount); }
         ~CommandFactory() { InterlockedDecrement(&objectCount); }
         HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** output) override
         {
@@ -232,7 +337,7 @@ namespace
         HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown* outer, REFIID iid, void** output) override
         {
             if (outer) return CLASS_E_NOAGGREGATION;
-            auto* command = new (std::nothrow) ExplorerCommand;
+            auto* command = new (std::nothrow) ExplorerCommand(kind_);
             if (!command) return E_OUTOFMEMORY;
             HRESULT hr = command->QueryInterface(iid, output);
             command->Release();
@@ -259,8 +364,10 @@ extern "C" HRESULT __stdcall ModuleCanUnload()
 extern "C" HRESULT __stdcall ModuleGetClassObject(
     REFCLSID clsid, REFIID iid, void** output)
 {
-    if (!IsEqualCLSID(clsid, CommandClsid)) return CLASS_E_CLASSNOTAVAILABLE;
-    auto* factory = new (std::nothrow) CommandFactory;
+    if (!IsEqualCLSID(clsid, CommandClsid) && !IsEqualCLSID(clsid, QuickGroupClsid))
+        return CLASS_E_CLASSNOTAVAILABLE;
+    CommandKind kind = IsEqualCLSID(clsid, CommandClsid) ? CommandKind::Editor : CommandKind::QuickGroup;
+    auto* factory = new (std::nothrow) CommandFactory(kind);
     if (!factory) return E_OUTOFMEMORY;
     HRESULT hr = factory->QueryInterface(iid, output);
     factory->Release();

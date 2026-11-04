@@ -1,4 +1,4 @@
-# Native Windows PowerShell 5.1 / UIAutomation smoke on an ephemeral GitHub runner.
+﻿# Native Windows PowerShell 5.1 / UIAutomation smoke on an ephemeral GitHub runner.
 # Launches the installed app with the exact Explorer binary selection transport.
 # Only reads GUI state and disposable files under a unique %TEMP% directory.
 [CmdletBinding()]
@@ -45,9 +45,11 @@ function New-SelectionPacket([string[]]$paths) {
     return $packet
 }
 
-function Open-SelectionGui([string[]]$paths) {
+function Open-SelectionGui([string[]]$paths, [string]$quickMode = '') {
     $packet = New-SelectionPacket $paths
-    $process = Start-Process -FilePath $AppExecutable -ArgumentList @('--selection-file',('"' + $packet + '"')) -PassThru
+    $arguments = @('--selection-file',('"' + $packet + '"'))
+    if ($quickMode) { $arguments += @('--quick-mode', $quickMode) }
+    $process = Start-Process -FilePath $AppExecutable -ArgumentList $arguments -PassThru
     $handle = [IntPtr]::Zero
     for ($attempt=0; $attempt -lt 30; $attempt++) {
         Start-Sleep -Milliseconds 350
@@ -125,6 +127,27 @@ try {
         throw 'Opening a selection unexpectedly modified a fixture.'
     }
     Write-Host 'GUI selection handoff PASS: native UTF-16 packet, mixed files/folder, Hangul and Japanese names, WPF grid, native caption, no rename.'
+    Close-SelectionGui $app
+    $app = $null
+
+    # UI quick modes still select the standard editable rule and preview:
+    # neither invocation is allowed to mutate the selected fixture.
+    foreach ($mode in @('sequence','replace')) {
+        $app = Open-SelectionGui $paths $mode
+        $names = @(Get-UiNames $app.Root)
+        $expectedRule = if ($mode -eq 'sequence') { '순번 붙이기 / 이름 대체' }
+                        else { '문자열 찾기 · 바꾸기' }
+        if (-not ($names -contains $expectedRule)) {
+            throw "Quick mode [$mode] did not preselect [$expectedRule] in the real WPF UI: $($names -join ' | ')"
+        }
+        if ([IO.File]::ReadAllText((Join-Path $fixtureRoot 'file1.txt')) -ne 'one') {
+            throw "Quick mode [$mode] modified a fixture without Apply."
+        }
+        Write-Host "Quick Explorer action GUI routing PASS: $mode; rule preselected, no rename."
+        Close-SelectionGui $app
+        $app = $null
+    }
+
 }
 finally {
     Close-SelectionGui $app
