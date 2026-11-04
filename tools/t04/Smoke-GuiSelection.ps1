@@ -11,12 +11,11 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows' -or
     throw 'This smoke probe runs only in the GitHub-hosted ephemeral Windows CI environment.'
 }
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
-$types = [System.Windows.Automation.AutomationElement]
 $scope = [System.Windows.Automation.TreeScope]::Descendants
 $trueCondition = [System.Windows.Automation.Condition]::TrueCondition
 
 function Find-AutomationId($root, [string]$id) {
-    $condition = New-Object System.Windows.Automation.PropertyCondition($types::AutomationIdProperty,$id)
+    $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty,$id)
     return $root.FindFirst($scope,$condition)
 }
 
@@ -33,7 +32,7 @@ function Get-UiNames($root) {
 function New-SelectionPacket([string[]]$paths) {
     $packet = Join-Path ([IO.Path]::GetTempPath()) ('DKR' + [Guid]::NewGuid().ToString('N') + '.tmp')
     $file = [IO.File]::Open($packet,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
-    $writer = New-Object IO.BinaryWriter($file,[Text.Encoding]::Unicode)
+    $writer = [IO.BinaryWriter]::new($file,[Text.Encoding]::Unicode)
     try {
         $writer.Write([byte[]]@(68,75,82,49))
         $writer.Write([uint32]$paths.Length)
