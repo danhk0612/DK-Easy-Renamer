@@ -58,6 +58,15 @@ Source: "{#SourcePath}\..\..\THIRD_PARTY_LICENSES.md"; DestDir: "{app}"; Flags: 
 Name: "{autoprograms}\DK Easy Renamer"; Filename: "{app}\DK.EasyRenamer.App.exe"; IconFilename: "{app}\DK-Easy-Renamer.ico"
 
 [Code]
+function GetPowerShellExecutable(): String;
+begin
+  // Prefer PowerShell 7 when already installed, but do not make it a dependency.
+  // Some Windows Server builds ship a broken 32-bit Windows PowerShell security module.
+  Result := ExpandConstant('{pf}\PowerShell\7\pwsh.exe');
+  if not FileExists(Result) then
+    Result := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+end;
+
 #ifndef SignedBuild
 function InitializeSetup(): Boolean;
 begin
@@ -87,15 +96,6 @@ begin
       'A self-signed test certificate must be explicitly trusted in LocalMachine\TrustedPeople. No app files were installed.';
 end;
 #endif
-
-function GetPowerShellExecutable(): String;
-begin
-  // Prefer PowerShell 7 when already installed, but do not make it a dependency.
-  // Some Windows Server builds ship a broken 32-bit Windows PowerShell security module.
-  Result := ExpandConstant('{pf}\PowerShell\7\pwsh.exe');
-  if not FileExists(Result) then
-    Result := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
-end;
 
 function RunPowerShell(ScriptName: String): Boolean;
 var
