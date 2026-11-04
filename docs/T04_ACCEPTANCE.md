@@ -156,3 +156,10 @@ Implementation PR #6 can merge after automated gates. **This does not close Wind
 The ephemeral Windows Server 2025 runner starts the installed WPF app with the same DKR1 UTF-16LE binary transport packet as the native Explorer COM verb. The script uses only newly generated test fixtures under TEMP (regular file, Korean and Japanese filenames, and an empty folder). Windows UI Automation checks all four paths appear in the live WPF FilesGrid, confirms the native title and consumed packet removal, and checks no test file contents changed on open. It closes only its own test process and deletes only its generated fixtures.
 
 This is app-side handoff and GUI list evidence, not proof that the real Windows 11 shell menu invokes the COM command. Actual user-device menu invocation, Apply/Undo and light/dark visual appearance remain separate acceptance items.
+
+
+## 2026-11-04: titlebar still blank and repeat signing certificate
+
+The user reports that the native titlebar text is visually absent after installing 0.1.1, despite previous DWM text color calls. A nonempty Win32 window caption measured in Windows Server CI did not prove painted pixels. The follow-up now adds a real white WPF title text element in the blue WindowChrome caption area and keeps system caption button hit testing. UI Automation verifies the element is present and not offscreen; Windows 11 visual and window-control acceptance still requires a user-device observation.
+
+The user also confirms that overwriting the same install folder does not prevent certificate trust errors. Each regular CI run generates a different self-signed signing identity; the folder cannot change Windows MSIX verification. The separate dev-signing workflow supports a persistent private PFX; owners must provision that key and GitHub protected environment exactly once (Configure-StableDevSigning.ps1 helps with secure local CLI input). Do not auto-import untrusted signing certificates.
