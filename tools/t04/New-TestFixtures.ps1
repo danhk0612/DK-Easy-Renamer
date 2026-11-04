@@ -1,4 +1,4 @@
-# Creates a disposable, clearly labeled file/folder test set.
+﻿# Creates a disposable, clearly labeled file/folder test set.
 # Does not rename or delete any existing file and never touches non-test folders.
 [CmdletBinding()]
 param()
