@@ -35,10 +35,10 @@ public sealed class StableReleaseParserTests
     public void ReleaseNotesAreDisplayOnlyText()
     {
         const string json = """
-            {"tag_name":"v0.2.0","html_url":"https://github.com/danhk0612/DK-Easy-Renamer/releases/tag/v0.2.0","body":"- Fixed ordering\\n- Improved menu"}
+            {"tag_name":"v0.2.0","html_url":"https://github.com/danhk0612/DK-Easy-Renamer/releases/tag/v0.2.0","body":"- Fixed ordering\n- Improved menu"}
             """;
         StableRelease release = Assert.IsType<StableRelease>(StableReleaseParser.ParseLatest(json));
-        Assert.Equal("- Fixed ordering\\n- Improved menu", release.ReleaseNotes);
+        Assert.Equal("- Fixed ordering\n- Improved menu", release.ReleaseNotes);
     }
 
     [Fact]
