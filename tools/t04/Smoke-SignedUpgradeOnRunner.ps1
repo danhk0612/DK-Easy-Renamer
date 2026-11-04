@@ -49,7 +49,11 @@ if ((Get-AppxPackage -Name 'DKEasyRenamer.Shell') -or (Test-Path -LiteralPath $i
 }
 
 function Invoke-Setup([string]$executable) {
-    $process = Start-Process -FilePath $executable -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+    $arguments = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+    if ($executable.EndsWith('-SIGNED-PROBE.exe',[StringComparison]::OrdinalIgnoreCase)) {
+        $arguments += '/TASKS=shellmenu'
+    }
+    $process = Start-Process -FilePath $executable -ArgumentList $arguments -Wait -PassThru
     try {
         if ($process.ExitCode -ne 0) {
             throw "Installer failed with exit code $($process.ExitCode): $executable"
