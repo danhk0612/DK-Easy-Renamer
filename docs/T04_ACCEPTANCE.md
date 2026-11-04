@@ -108,3 +108,11 @@ PowerToys documents that MSIX ExternalLocation can alter folder DACLs on Windows
 References:
 - https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/integrate-packaged-app-with-file-explorer
 - https://github.com/microsoft/PowerToys/blob/main/src/PackageIdentity/readme.md
+
+## Windows 11 menu title mojibake (2026-11-04)
+
+After reboot the modern menu appears in both standard and extended Explorer context menus, but the Korean title is corrupt.
+Root cause: ExplorerCommand::GetTitle() used a UTF-8 Korean string literal while the native MSVC C++ project did not specify /utf-8. BOM-less source can be misinterpreted in the builder's legacy code page.
+Fix: enable /utf-8 for the native C++ project and use ASCII universal character escapes for the Korean title so its UTF-16 content does not depend on editor encoding.
+Regression: Windows CI scans the built native COM DLL for the exact UTF-16LE title DK Easy Renamer로 이름 변경.
+Actual Explorer rendering remains unverified until the rebuilt test installer is installed with the **matching certificate** and Explorer is restarted.
