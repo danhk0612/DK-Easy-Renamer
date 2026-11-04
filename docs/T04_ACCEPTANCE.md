@@ -131,7 +131,7 @@ Do not mark T04 as fully accepted from these partial passes; use only disposable
 
 ## Window chrome and taskbar branding — T04 visual check (2026-11-04)
 
-A physical test screenshot showed the old *DK letters on blue* taskbar icon although the main WPF UI used a document-and-pencil artwork. The older sparse package builder generated placeholder `Square44x44Logo.png`, used by the package identity for Windows taskbar. It is now resized from the same original PNG as the ICO, with transparent corners; the T05 package validator rejects the old opaque placeholder. The WPF window explicitly carries the same ICO as a resource.
+A physical test screenshot showed the old *DK letters on blue* taskbar icon although the main WPF UI used a document-and-pencil artwork. The older sparse package builder generated placeholder `Square44x44Logo.png`, used by the package identity for Windows taskbar. It is now resized from the same original PNG as the ICO, with transparent corners; the T05 package validator rejects the old opaque placeholder. The WPF window inherits the application's original ICO from the WPF ApplicationIcon build property.
 
 The native caption previously displayed a blue title band without visible text, despite `Title=DK Easy Renamer` in XAML. `MainWindow.Caption.cs` now writes the title to the Win32 HWND and requests DWM white caption text on the #2D7BC6 caption, preserving Windows standard minimize/maximize/close controls. Test build version is incremented to **0.1.1** to distinguish the changed package assets from the old 0.1.0 install.
 
