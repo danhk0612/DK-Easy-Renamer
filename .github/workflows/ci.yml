@@ -73,6 +73,30 @@ jobs:
         run: dotnet build DK-Easy-Renamer.sln -c Release --no-restore
       - name: Test binary handoff
         run: dotnet test DK-Easy-Renamer.sln -c Release --no-build --verbosity normal
+      - name: Check public update installer preflight rejects unsafe packages
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('tools/ux07/Validate-PublicInstaller.ps1',[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw "Public installer verifier syntax error: $($errors[0])" }
+          $fixture = Join-Path $env:RUNNER_TEMP 'dk-unsigned-update-fixture.exe'
+          [IO.File]::WriteAllText($fixture, 'This is not a signed executable')
+          try {
+            $digest = (Get-FileHash -LiteralPath $fixture -Algorithm SHA256).Hash
+            $blocked = $false
+            try {
+              ./tools/ux07/Validate-PublicInstaller.ps1 -InstallerPath $fixture -ExpectedSha256 $digest -ExpectedSignerSubject 'CN=DK Easy Renamer Public' -ExpectedSignerThumbprint ('A' * 40)
+            } catch { $blocked = $true }
+            if (-not $blocked) { throw 'An unsigned fixture unexpectedly passed preflight.' }
+            $blockedDev = $false
+            try {
+              ./tools/ux07/Validate-PublicInstaller.ps1 -InstallerPath $fixture -ExpectedSha256 $digest -ExpectedSignerSubject 'CN=DK Easy Renamer Development' -ExpectedSignerThumbprint ('A' * 40)
+            } catch { $blockedDev = $true }
+            if (-not $blockedDev) { throw 'The development certificate identity unexpectedly passed preflight.' }
+          } finally {
+            Remove-Item -LiteralPath $fixture -Force -ErrorAction SilentlyContinue
+          }
       - name: Build native x64 Explorer COM DLL
         shell: pwsh
         run: |
