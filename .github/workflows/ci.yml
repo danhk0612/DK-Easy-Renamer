@@ -370,3 +370,22 @@ jobs:
       - name: Install old version, upgrade, verify user data and uninstall
         shell: pwsh
         run: ./tools/t04/Smoke-SignedUpgradeOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-signed-upgrade"
+
+  smoke-optional-shell:
+    name: CI smoke - app-only install and optional Explorer menu on Windows Server 2025
+    needs: build-test
+    runs-on: windows-2025
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Download signed setup and matching public test certificate
+        uses: actions/download-artifact@v4
+        with:
+          name: t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST
+          path: ${{ runner.temp }}/dk-optional-shell-probe
+      - name: Test no-trust standalone app, then optional shell registration and removal
+        shell: pwsh
+        run: ./tools/t04/Smoke-OptionalShellOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-optional-shell-probe/installer"
