@@ -29,8 +29,21 @@ $uninstall = Join-Path $env:LOCALAPPDATA 'Programs\DK Easy Renamer\unins000.exe'
 try {
     Import-Certificate -FilePath $cer -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' -ErrorAction Stop | Out-Null
     Write-Host "Temporary CI trust added only for current ephemeral VM: $($public.Thumbprint)"
+    $package = Join-Path (Split-Path -Parent $folder) 'DKEasyRenamer.Shell.msix'
+    $signature = Get-AuthenticodeSignature -LiteralPath $package
+    Write-Host "Direct MSIX signature: $($signature.Status); thumbprint: $($signature.SignerCertificate.Thumbprint)"
+    try { & (Join-Path $PSScriptRoot '..\..\installer\windows\Preflight-Shell.ps1') -PackagePath $package }
+    catch { Write-Warning ('Direct preflight: ' + $_.ToString()) }
+    $logFile = Join-Path $env:RUNNER_TEMP 'dk-renamer-installer-test.log'
     $install = Start-Process -FilePath $setup[0].FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
-    if ($install.ExitCode -ne 0) { throw "Inno setup failed with exit code $($install.ExitCode)." }
+    if ($install.ExitCode -ne 0) {
+        $p = Join-Path $env:LOCALAPPDATA 'DK Easy Renamer\Logs\shell-preflight.log'
+        if (Test-Path -LiteralPath $p) {
+            Write-Host '=== Inno preflight diagnostics ==='
+            Get-Content -LiteralPath $p | ForEach-Object { Write-Host $_ }
+        }
+        throw "Inno setup failed with exit code $($install.ExitCode)."
+    }
     & (Join-Path $PSScriptRoot 'Check-InstalledShell.ps1')
     Write-Host 'Windows Server 2025 package registration smoke PASS (not Windows 11 UI acceptance).'
 
