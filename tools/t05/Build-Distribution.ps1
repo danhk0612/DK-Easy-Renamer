@@ -82,6 +82,7 @@ if (-not $compiler) {
 if (-not $compiler) { throw 'Inno Setup ISCC.exe is required to compile the installer.' }
 $iss = Join-Path $root 'installer\windows\DK-Easy-Renamer.iss'
 $arguments = @("/DPackageDir=$art","/DProductVersion=$Version","/DBuildFlavor=$flavor")
+if ($AppOnly) { $arguments += '/DAppOnlyBuild=1' }
 if ($signed) {
     $arguments += '/DSignedBuild=1'
     # Inno's signer signs Setup, uninstall binaries and temporary Setup copies.
