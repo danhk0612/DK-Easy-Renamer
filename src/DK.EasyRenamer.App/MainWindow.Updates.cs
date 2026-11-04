@@ -53,8 +53,15 @@ public partial class MainWindow
                 return;
             }
 
+            string notes = release.ReleaseNotes.Replace("\r\n", "\n").Replace('\r', '\n').Trim();
+            if (string.IsNullOrWhiteSpace(notes))
+                notes = "변경 내용이 등록되지 않았습니다.";
+            else if (notes.Length > 600)
+                notes = notes[..600].TrimEnd() + "\n… (전체 내용은 GitHub 릴리스 페이지에서 확인)";
+
             var choice = MessageBox.Show(this,
                 $"새 정식 버전 {release.Version.ToString(3)}이 공개됐습니다.\n현재 버전: {current.ToString(3)}\n\n" +
+                $"변경 내용:\n{notes}\n\n" +
                 "공식 GitHub 릴리스 페이지를 브라우저로 여시겠습니까?\n" +
                 "설치 파일은 자동 다운로드하거나 실행하지 않습니다.",
                 "새 버전 확인", MessageBoxButton.YesNo, MessageBoxImage.Information);
