@@ -42,13 +42,18 @@ CloseApplications=yes
 RestartApplications=no
 DisableProgramGroupPage=yes
 
+[Tasks]
+Name: shellmenu; Description: "Windows 11 탐색기 우클릭 메뉴 등록"; Flags: unchecked
+
 [Files]
-; Preflight extracted before copying any files, so an untrusted test certificate
-; blocks setup without leaving a half-installed app behind.
+;; The certificate is checked only for the optional modern context menu.
+;; An untrusted package must not block the standalone application installer.
 Source: "{#SourcePath}\Preflight-Shell.ps1"; Flags: dontcopy noencryption
 Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; Flags: dontcopy noencryption
 Source: "{#PackageDir}\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}\Preflight-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}\Query-ShellState.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Register-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Unregister-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\..\..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -68,32 +73,93 @@ begin
 end;
 
 #ifndef SignedBuild
+  #ifndef AppOnlyBuild
 function InitializeSetup(): Boolean;
 begin
   MsgBox('This is an unsigned CI packaging candidate. It cannot register the Explorer extension. Obtain a trusted signed build for installation.', mbCriticalError, MB_OK);
   Result := False;
 end;
+  #endif
 #endif
 
 
 #ifdef SignedBuild
-function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ShellTrustChecked: Boolean;
+  ShellTrustAvailable: Boolean;
+
+function CheckShellCertificate(): Boolean;
 var
   Cmd: String;
   ExitCode: Integer;
 begin
-  Result := '';
   ExtractTemporaryFile('Preflight-Shell.ps1');
   ExtractTemporaryFile('DKEasyRenamer.Shell.msix');
   Cmd := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
     ExpandConstant('{tmp}\Preflight-Shell.ps1') + '" -PackagePath "' +
     ExpandConstant('{tmp}\DKEasyRenamer.Shell.msix') + '"';
-  if not Exec(GetPowerShellExecutable(),
-    Cmd, ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, ExitCode) then
-    Result := 'Could not start the MSIX certificate preflight. No app files were installed.'
-  else if ExitCode <> 0 then
-    Result := 'The MSIX certificate preflight failed. Check %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-preflight.log. ' +
-      'A self-signed test certificate must be explicitly trusted in LocalMachine\TrustedPeople. No app files were installed.';
+  Result := Exec(GetPowerShellExecutable(),
+    Cmd, ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, ExitCode);
+  if Result then Result := ExitCode = 0;
+end;
+
+function IsShellTrusted(): Boolean;
+begin
+  if not ShellTrustChecked then
+  begin
+    ShellTrustChecked := True;
+    ShellTrustAvailable := CheckShellCertificate();
+  end;
+  Result := ShellTrustAvailable;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+var
+  Index: Integer;
+begin
+  if CurPageID = wpSelectTasks then
+  begin
+    Index := WizardForm.TasksList.Items.IndexOf('Windows 11 탐색기 우클릭 메뉴 등록');
+    if Index >= 0 then
+    begin
+      WizardForm.TasksList.ItemEnabled[Index] := IsShellTrusted();
+      if not ShellTrustAvailable then
+        WizardForm.TasksList.Checked[Index] := False;
+    end;
+  end;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  // Silent /TASKS=shellmenu must not bypass certificate validation.
+  if WizardIsTaskSelected('shellmenu') and not CheckShellCertificate() then
+    Result := 'Explorer menu certificate is not trusted. Uncheck the optional ' +
+      'context menu task to install the base app without shell integration.';
+end;
+#endif
+
+#ifndef SignedBuild
+procedure CurPageChanged(CurPageID: Integer);
+var
+  Index: Integer;
+begin
+  if CurPageID = wpSelectTasks then
+  begin
+    Index := WizardForm.TasksList.Items.IndexOf('Windows 11 탐색기 우클릭 메뉴 등록');
+    if Index >= 0 then
+    begin
+      WizardForm.TasksList.Checked[Index] := False;
+      WizardForm.TasksList.ItemEnabled[Index] := False;
+    end;
+  end;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  if WizardIsTaskSelected('shellmenu') then
+    Result := 'An unsigned application-only build cannot register the Windows 11 Explorer menu.';
 end;
 #endif
 
@@ -114,8 +180,23 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
-    if not RunPowerShell('Register-Shell.ps1') then
-      RaiseException('Explorer menu registration failed. Check %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-registration.log for the exact Windows Appx error code.');
+    #ifdef SignedBuild
+    if WizardIsTaskSelected('shellmenu') then
+    begin
+      if not RunPowerShell('Register-Shell.ps1') then
+        RaiseException('Explorer menu registration failed. Check %LOCALAPPDATA%\DK Easy Renamer\Logs\shell-registration.log for the exact Windows Appx error code.');
+    end
+    else
+    #endif
+    begin
+      // On a fresh app-only install there is nothing to remove. Avoid invoking
+      // package deployment PowerShell when no registration belongs to this user.
+      if RegKeyExists(HKCU, 'Software\DKEasyRenamer') then
+      begin
+        if not RunPowerShell('Unregister-Shell.ps1') then
+          RaiseException('Explorer menu removal failed. The application files remain installed.');
+      end;
+    end;
   end;
 end;
 
@@ -123,7 +204,10 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
   begin
-    if not RunPowerShell('Unregister-Shell.ps1') then
-      RaiseException('Explorer menu removal failed; uninstall stopped to avoid orphan registrations.');
+    if RegKeyExists(HKCU, 'Software\DKEasyRenamer') then
+    begin
+      if not RunPowerShell('Unregister-Shell.ps1') then
+        RaiseException('Explorer menu removal failed; uninstall stopped to avoid orphan registrations.');
+    end;
   end;
 end;

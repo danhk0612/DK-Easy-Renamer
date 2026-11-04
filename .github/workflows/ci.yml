@@ -153,6 +153,17 @@ jobs:
             artifacts/t05/identity/
             artifacts/t05/DKEasyRenamer.Shell.msix
           retention-days: 7
+      - name: Build explicit unsigned standalone app-only installer (TEST ONLY)
+        shell: pwsh
+        run: |
+          ./tools/t05/Build-Distribution.ps1 -AppOnly
+          ./tools/t05/Validate-Distribution.ps1 -ExpectedMode AppOnly
+      - name: Upload unsigned standalone-only test setup (NOT a public release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-UNSIGNED-APP-ONLY-TEST-ONLY
+          path: artifacts/t05/installer/
+          retention-days: 7
       - name: Build isolated developer-signed setup (NOT a public release)
         shell: pwsh
         run: |
@@ -370,3 +381,28 @@ jobs:
       - name: Install old version, upgrade, verify user data and uninstall
         shell: pwsh
         run: ./tools/t04/Smoke-SignedUpgradeOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-signed-upgrade"
+
+  smoke-optional-shell:
+    name: CI smoke - app-only install and optional Explorer menu on Windows Server 2025
+    needs: build-test
+    runs-on: windows-2025
+    timeout-minutes: 12
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Download signed setup and matching public test certificate
+        uses: actions/download-artifact@v4
+        with:
+          name: t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST
+          path: ${{ runner.temp }}/dk-optional-shell-probe
+      - name: Download unsigned standalone test setup
+        uses: actions/download-artifact@v4
+        with:
+          name: t05-UNSIGNED-APP-ONLY-TEST-ONLY
+          path: ${{ runner.temp }}/dk-app-only-probe
+      - name: Test standalone installs without shell, then trusted optional shell
+        shell: pwsh
+        run: ./tools/t04/Smoke-OptionalShellOnRunner.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-optional-shell-probe/installer" -AppOnlyArtifactFolder "$env:RUNNER_TEMP/dk-app-only-probe"

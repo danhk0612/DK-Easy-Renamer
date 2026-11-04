@@ -5,7 +5,8 @@ param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$Version = '0.1.2',
     [string]$Publisher = 'CN=DK Easy Renamer Development',
-    [string]$CertificateThumbprint = ''
+    [string]$CertificateThumbprint = '',
+    [switch]$AppOnly
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -50,7 +51,8 @@ $msix = Join-Path $art 'DKEasyRenamer.Shell.msix'
 Copy-Item -LiteralPath $unsigned -Destination $msix -Force
 
 $signed = -not [string]::IsNullOrWhiteSpace($CertificateThumbprint)
-$flavor = if ($signed) { 'SIGNED-PROBE' } else { 'UNSIGNED-DO-NOT-INSTALL' }
+if ($signed -and $AppOnly) { throw 'AppOnly is for an intentionally unsigned standalone build.' }
+$flavor = if ($signed) { 'SIGNED-PROBE' } elseif ($AppOnly) { 'APP-ONLY' } else { 'UNSIGNED-DO-NOT-INSTALL' }
 if ($signed) {
     $cert = Get-Item -LiteralPath ('Cert:\CurrentUser\My\' + $CertificateThumbprint) -ErrorAction Stop
     if (-not $cert.HasPrivateKey -or $cert.Subject -ne $Publisher) {
@@ -80,6 +82,7 @@ if (-not $compiler) {
 if (-not $compiler) { throw 'Inno Setup ISCC.exe is required to compile the installer.' }
 $iss = Join-Path $root 'installer\windows\DK-Easy-Renamer.iss'
 $arguments = @("/DPackageDir=$art","/DProductVersion=$Version","/DBuildFlavor=$flavor")
+if ($AppOnly) { $arguments += '/DAppOnlyBuild=1' }
 if ($signed) {
     $arguments += '/DSignedBuild=1'
     # Inno's signer signs Setup, uninstall binaries and temporary Setup copies.
@@ -121,7 +124,9 @@ $hashes = @($installer,$msix) | ForEach-Object {
 $hashes | Set-Content -LiteralPath (Join-Path $outDir 'SHA256SUMS.txt') -Encoding ascii
 Write-Host "T05 installer candidate: $installer"
 Write-Host "T05 identity package: $msix"
-if (-not $signed) {
+if ($AppOnly) {
+    Write-Warning 'APP-ONLY: unsigned standalone test installer. No Explorer registration; SmartScreen may block execution. Not a public release.'
+} elseif (-not $signed) {
     Write-Warning 'UNSIGNED: This setup deliberately refuses installation. Do not distribute as a release.'
 } else {
     Write-Warning 'SIGNED-PROBE: interactive Windows install, trust, uninstall/upgrade and uninstaller signature are NOT tested.'
