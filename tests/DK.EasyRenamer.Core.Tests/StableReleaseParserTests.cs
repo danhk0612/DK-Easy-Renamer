@@ -32,6 +32,26 @@ public sealed class StableReleaseParserTests
         Assert.Null(StableReleaseParser.ParseLatest(json));
 
     [Fact]
+    public void ReleaseNotesAreDisplayOnlyText()
+    {
+        const string json = """
+            {"tag_name":"v0.2.0","html_url":"https://github.com/danhk0612/DK-Easy-Renamer/releases/tag/v0.2.0","body":"- Fixed ordering\\n- Improved menu"}
+            """;
+        StableRelease release = Assert.IsType<StableRelease>(StableReleaseParser.ParseLatest(json));
+        Assert.Equal("- Fixed ordering\\n- Improved menu", release.ReleaseNotes);
+    }
+
+    [Fact]
+    public void MissingOrInvalidBodyLeavesReleaseNotesEmpty()
+    {
+        Assert.Equal(string.Empty, Assert.IsType<StableRelease>(
+            StableReleaseParser.ParseLatest(Valid)).ReleaseNotes);
+        string json = Valid.Replace("\"prerelease\":false", "\"prerelease\":false,\"body\":42");
+        Assert.Equal(string.Empty, Assert.IsType<StableRelease>(
+            StableReleaseParser.ParseLatest(json)).ReleaseNotes);
+    }
+
+    [Fact]
     public void MissingFieldsAreNotConsideredUpdates() =>
         Assert.Null(StableReleaseParser.ParseLatest("{}"));
 
