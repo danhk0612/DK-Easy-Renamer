@@ -47,6 +47,10 @@ jobs:
           $errors = $null
           [System.Management.Automation.Language.Parser]::ParseFile('tools/t05/Configure-StableDevSigning.ps1',[ref]$tokens,[ref]$errors) | Out-Null
           if ($errors.Count -gt 0) { throw "Stable signing environment setup helper parse error: $($errors[0])" }
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('tools/t05/Test-PublicSigningReadiness.ps1',[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw "Public signing verification script parse error: $($errors[0])" }
           $created = ./tools/t04/New-TestFixtures.ps1
           $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
           if (-not $created.Root.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or
@@ -142,6 +146,18 @@ jobs:
             if (-not $preflightFailure -or -not $preflightFailure.Contains('LOCAL MACHINE TrustedPeople')) {
               throw 'Expected rejection of untrusted developer-signed MSIX before installation.'
             }
+            # A publicly distributed installer must never use the ephemeral self-signed test key.
+            $rejected = $false
+            try {
+              ./tools/t05/Test-PublicSigningReadiness.ps1 -InstallerPath 'artifacts/t05/installer/DK-Easy-Renamer-0.1.1-x64-SIGNED-PROBE.exe' -PackagePath 'artifacts/t05/DKEasyRenamer.Shell.msix' -AppExecutablePath 'artifacts/t05/app/DK.EasyRenamer.App.exe' -ShellDllPath 'artifacts/t05/app/DK.EasyRenamer.Shell.dll' -ExpectedPublisher 'CN=Public CI Test Publisher'
+            }
+            catch {
+              if ($_.Exception.Message -like 'Self-signed developer certificates cannot be used*') {
+                $rejected = $true
+              } else { throw }
+            }
+            if (-not $rejected) { throw 'Public signing verification accepted self-signed probe.' }
+            Write-Host 'Public release guard rejected self-signed developer artifact.'
             Export-Certificate -Cert $cert -FilePath 'artifacts/t05/installer/DKEasyRenamer-TEST-ONLY.cer' -Force | Out-Null
           }
           finally {
