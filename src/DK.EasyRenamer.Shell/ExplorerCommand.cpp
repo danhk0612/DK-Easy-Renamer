@@ -134,7 +134,7 @@ namespace
         HRESULT STDMETHODCALLTYPE GetTitle(IShellItemArray*, LPWSTR* title) override
         {
             if (!title) return E_POINTER;
-            return SHStrDupW(L"DK Easy Renamer로 이름 변경", title);
+            return SHStrDupW(L"DK Easy Renamer\uB85C \uC774\uB984 \uBCC0\uACBD", title);
         }
         HRESULT STDMETHODCALLTYPE GetIcon(IShellItemArray*, LPWSTR* icon) override
         {
