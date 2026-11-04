@@ -1,0 +1,134 @@
+# Native Windows PowerShell 5.1 / UIAutomation smoke on an ephemeral GitHub runner.
+# Launches the installed app with the exact Explorer binary selection transport.
+# Only reads GUI state and disposable files under a unique %TEMP% directory.
+[CmdletBinding()]
+param([Parameter(Mandatory)][string]$AppExecutable)
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows' -or
+    [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
+    throw 'This smoke probe runs only in the GitHub-hosted ephemeral Windows CI environment.'
+}
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+$scope = [System.Windows.Automation.TreeScope]::Descendants
+$trueCondition = [System.Windows.Automation.Condition]::TrueCondition
+
+function Find-AutomationId($root, [string]$id) {
+    $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty,$id)
+    return $root.FindFirst($scope,$condition)
+}
+
+function Get-UiNames($root) {
+    $nodes = $root.FindAll($scope,$trueCondition)
+    $names = New-Object 'System.Collections.Generic.List[string]'
+    for ($i=0; $i -lt $nodes.Count; $i++) {
+        $name = $nodes.Item($i).Current.Name
+        if (-not [string]::IsNullOrWhiteSpace($name)) { $names.Add($name) }
+    }
+    return $names.ToArray()
+}
+
+function New-SelectionPacket([string[]]$paths) {
+    $packet = Join-Path ([IO.Path]::GetTempPath()) ('DKR' + [Guid]::NewGuid().ToString('N') + '.tmp')
+    $file = [IO.File]::Open($packet,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    $writer = [IO.BinaryWriter]::new($file,[Text.Encoding]::Unicode)
+    try {
+        $writer.Write([byte[]]@(68,75,82,49))
+        $writer.Write([uint32]$paths.Length)
+        foreach ($path in $paths) {
+            $writer.Write([uint32]$path.Length)
+            $writer.Write([Text.Encoding]::Unicode.GetBytes($path))
+        }
+    }
+    finally { $writer.Dispose() }
+    return $packet
+}
+
+function Open-SelectionGui([string[]]$paths) {
+    $packet = New-SelectionPacket $paths
+    $process = Start-Process -FilePath $AppExecutable -ArgumentList @('--selection-file',('"' + $packet + '"')) -PassThru
+    $handle = [IntPtr]::Zero
+    for ($attempt=0; $attempt -lt 30; $attempt++) {
+        Start-Sleep -Milliseconds 350
+        $process.Refresh()
+        if ($process.HasExited) { throw "App exited early (code $($process.ExitCode))." }
+        if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
+            $handle = $process.MainWindowHandle
+            break
+        }
+    }
+    if ($handle -eq [IntPtr]::Zero) {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        throw 'Installed app did not expose a WPF main window.'
+    }
+    if ($process.MainWindowTitle -ne 'DK Easy Renamer') {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        throw "Native window title mismatch: $($process.MainWindowTitle)"
+    }
+    $gui = [System.Windows.Automation.AutomationElement]::FromHandle($handle)
+    $grid = $null
+    for ($attempt=0; $attempt -lt 20; $attempt++) {
+        $grid = Find-AutomationId $gui 'FilesGrid'
+        if ($null -ne $grid) { break }
+        Start-Sleep -Milliseconds 250
+    }
+    $caption = Find-AutomationId $gui 'VisibleWindowCaption'
+    if ($null -eq $caption -or $caption.Current.Name -ne 'DK Easy Renamer' -or $caption.Current.IsOffscreen) {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        throw 'The WPF-rendered top title is missing, incorrect or offscreen.'
+    }
+    if ($null -eq $grid) {
+        $names = Get-UiNames $gui
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        throw ('UIAutomation did not find FilesGrid. Available UI names: ' + ($names -join ' | '))
+    }
+    if (Test-Path -LiteralPath $packet) {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        throw 'App did not delete the consumed Explorer handoff packet.'
+    }
+    return [pscustomobject]@{ Process=$process; Root=$gui; Grid=$grid }
+}
+
+function Close-SelectionGui($app) {
+    if ($null -ne $app -and $null -ne $app.Process) {
+        if (-not $app.Process.HasExited) {
+            Stop-Process -Id $app.Process.Id -Force -ErrorAction SilentlyContinue
+        }
+        $app.Process.Dispose()
+    }
+}
+
+$created = & (Join-Path $PSScriptRoot 'New-TestFixtures.ps1')
+$fixtureRoot = [IO.Path]::GetFullPath($created.Root)
+$tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
+if (-not $fixtureRoot.StartsWith($tempRoot,[StringComparison]::OrdinalIgnoreCase) -or
+    -not ([IO.Path]::GetFileName($fixtureRoot).StartsWith('DK-EasyRenamer-T04-'))) {
+    throw 'Fixture root does not match uniquely labeled %TEMP% test directory.'
+}
+$app = $null
+try {
+    $paths = @(
+        (Join-Path $fixtureRoot 'file1.txt'),
+        (Join-Path $fixtureRoot '한글 파일 03.txt'),
+        (Join-Path $fixtureRoot '日本語 04.txt'),
+        (Join-Path $fixtureRoot '빈 폴더')
+    )
+    $app = Open-SelectionGui $paths
+    $names = @(Get-UiNames $app.Grid)
+    foreach ($name in @('file1.txt','한글 파일 03.txt','日本語 04.txt','빈 폴더')) {
+        if (-not ($names -contains $name)) {
+            throw ("GUI did not render a selected Explorer path [" + $name + "]; grid names: " + ($names -join ' | '))
+        }
+    }
+    if ([IO.File]::ReadAllText((Join-Path $fixtureRoot 'file1.txt')) -ne 'one') {
+        throw 'Opening a selection unexpectedly modified a fixture.'
+    }
+    Write-Host 'GUI selection handoff PASS: native UTF-16 packet, mixed files/folder, Hangul and Japanese names, WPF grid, native caption, no rename.'
+}
+finally {
+    Close-SelectionGui $app
+    if (Test-Path -LiteralPath $fixtureRoot) {
+        Remove-Item -LiteralPath $fixtureRoot -Force -Recurse
+    }
+}

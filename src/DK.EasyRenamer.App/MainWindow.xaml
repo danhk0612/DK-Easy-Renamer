@@ -2,13 +2,29 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="DK Easy Renamer"
         SourceInitialized="OnWindowSourceInitialized" Width="1150" Height="750" MinWidth="870" MinHeight="580"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource TitleBrush}"
         FontFamily="Segoe UI" FontSize="13"
         AllowDrop="True" DragOver="OnExternalDragOver" Drop="OnExternalDrop">
-    <Grid Margin="23" Background="{DynamicResource CanvasBrush}">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="36" GlassFrameThickness="0,36,0,0"
+                            ResizeBorderThickness="6" UseAeroCaptionButtons="True" />
+    </shell:WindowChrome.WindowChrome>
+    <Grid Background="{DynamicResource CanvasBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Border Grid.Row="0" Background="{DynamicResource BrandBrush}">
+            <TextBlock x:Name="VisibleWindowCaption"
+                       Text="DK Easy Renamer" AutomationProperties.AutomationId="VisibleWindowCaption"
+                       Foreground="White" FontSize="13" FontWeight="SemiBold"
+                       VerticalAlignment="Center" Margin="44,0,160,0" />
+        </Border>
+        <Grid Grid.Row="1" Margin="23" Background="{DynamicResource CanvasBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="18" />
@@ -230,6 +246,7 @@
                     <TextBlock Text="  이름 변경 적용" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
+        </Grid>
         </Grid>
     </Grid>
 </Window>
