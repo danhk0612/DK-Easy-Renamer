@@ -1,4 +1,4 @@
-# Native Windows PowerShell 5.1 / UIAutomation smoke on an ephemeral GitHub runner.
+﻿# Native Windows PowerShell 5.1 / UIAutomation smoke on an ephemeral GitHub runner.
 # Launches the installed app with the exact Explorer binary selection transport.
 # Only reads GUI state and disposable files under a unique %TEMP% directory.
 [CmdletBinding()]
