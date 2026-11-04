@@ -52,3 +52,20 @@ References:
 - GitHub: https://docs.github.com/en/rest/releases/assets
 - Microsoft: https://learn.microsoft.com/powershell/module/microsoft.powershell.security/get-authenticodesignature
 - Existing tracker: https://github.com/danhk0612/DK-Easy-Renamer/issues/10
+
+## Build -> certificate -> signing -> upgrade test (CI verification)
+
+The development path now tests the practical order without obtaining or pretending to obtain a publicly trusted certificate:
+
+1. Build and test the .NET/WPF app, Core, native Explorer COM DLL and unsigned identity/installer.
+2. On the isolated `windows-2022` runner, generate a **temporary, non-exportable self-signed development certificate** after the unsigned build.
+3. Sign both the existing **0.1.2** and a **CI-only 0.1.3** installer/MSIX with that same temporary certificate. The second version uses `-Version 0.1.3` only for the test build. Restore the original 0.1.2 standard artifact after capturing both fixtures.
+4. Publish the two disposable signed versions plus the **public** .cer as a 7-day GitHub Actions artifact named `t05-SIGNED-UPGRADE-TEST-ONLY`. Never publish a Release/tag; never upload a private key.
+5. In a fresh `windows-2025` CI runner, explicitly trust the public .cer **only on that ephemeral test VM**, install 0.1.2, verify package identity and shell registration, create local user data, upgrade to 0.1.3, confirm single new package version and unchanged install path/data, then uninstall and confirm registration cleanup.
+6. Remove the temporary test trust and fixture data. Report this as **Windows Server 2025 CI evidence**, not Windows 11 Explorer GUI acceptance or publicly trusted publisher validation.
+
+The disposable 0.1.3 version is NOT a formal release, and must never become the application version without a separate version decision.
+
+A public signing certificate is issued by an approved signing provider **after identity verification**, and is *not* produced by building binaries or generating the disposable test certificate. Public signing and user-facing automatic installation remain gated as described above.
+
+Existing signed installer smoke coverage is retained separately. Any failed upgrade assertion blocks the PR and must not be reported as successful.
