@@ -29,8 +29,9 @@ The installed `Query-ShellState.ps1` reports current-user state; only the user's
 ## Windows CI verification
 
 - Existing signed installation and same-certificate test upgrades explicitly opt into `/TASKS=shellmenu` so their expected Explorer registration continues to be checked.
-- A separate disposable Windows Server 2025 VM runs `Smoke-OptionalShellOnRunner.ps1` with: rejection of an untrusted MSIX preflight, temporary certificate trust **only on that VM**, signed installer with the optional shell task unchecked (base app only), explicit opt-in shell installation, removal and re-application using the installed scripts, and uninstall cleanup.
-- The unsigned APP-ONLY installer is **build/manifest validated**, not automatically install-tested: on the current headless Windows Server runner the unsigned setup process did not reach Inno logging and was stopped by a 120-second watchdog. This does not establish why it stalled; Windows 11 real-device execution is a separate BLOCKED acceptance item.
+- A separate disposable Windows Server 2025 VM runs `Smoke-OptionalShellOnRunner.ps1` with: unsigned APP-ONLY setup **without a trusted certificate**, a signed setup whose MSIX certificate is not yet trusted (both base-app only), rejected untrusted MSIX preflight, temporary certificate trust **only on that VM**, signed installer with the optional shell task unchecked, explicit opt-in shell installation, removal and re-application using installed scripts, and uninstall cleanup.
+- The original headless timeout in this additional smoke test was caused by naming the PowerShell helper parameter `$args`, which swallowed the requested `/VERYSILENT` flags and opened a UI installer. The parameter is now named `$arguments` and the CI logs command lines, Inno setup logs and bounded timeout evidence. This mistake alone does not establish any product installer failure.
+- Passing Windows Server 2025 headless tests do **not** establish Windows 11 interactive wizard checkbox appearance or actual Explorer context-menu visibility. Windows 11 physical acceptance remains required.
 - Windows Server checks do not establish that the interactive Inno checkbox or WPF button visually behaves correctly on Windows 11. Keep the physical acceptance item open until directly observed.
 
 ## Release boundaries
