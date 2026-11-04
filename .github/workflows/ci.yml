@@ -386,6 +386,7 @@ jobs:
     name: CI smoke - app-only install and optional Explorer menu on Windows Server 2025
     needs: build-test
     runs-on: windows-2025
+    timeout-minutes: 12
     if: ${{ github.event_name == 'pull_request' }}
     permissions:
       contents: read
