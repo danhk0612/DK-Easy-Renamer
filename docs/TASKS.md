@@ -9,7 +9,7 @@ Updated 2026-11-04: T00–T03 and T05 are merged. T04 additionally corrects pack
 | T02 rename core | Merged; disposable filesystem tests pass |
 | T03 Fluent GUI | Merged; compile pass; actual apply/Undo, sorting and theme require testing |
 | T05 installer | Merged; Windows 11 signed test install confirmed; Windows Server 2025 install/uninstall CI passed; Windows 11 upgrade/uninstall unverified |
-| T04 integrated acceptance | PARTIAL PASS: modern context-menu visibility and readable Korean title; new 0.1.1 taskbar/titlebar icons and remaining user flows require physical verification |
+| T04 integrated acceptance | Code tested on CI and Windows Server 2025; Windows 11 interactive UI acceptance pending in issue #7 |
 
 ## Reusable test certificate
 - tools/t05/New-StableDevCertificate.ps1 creates a one-time PRIVATE PFX OUTSIDE the repo.
@@ -18,4 +18,8 @@ Updated 2026-11-04: T00–T03 and T05 are merged. T04 additionally corrects pack
 - No private key, password or encoded key is committed or uploaded in any build artifact.
 
 ## Gate
-Keep PR #6 open until multi-file selection handoff, GUI rename/Undo, sorting, theme and installation update/uninstall tests are completed on Windows 11. No Release/tag without explicit authorization.
+PR #6 contains the T04 code and automated checks and may merge after CI passes. Windows 11 interactive acceptance is tracked separately in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7), and remains INCOMPLETE until explicit user observations. No public Release/tag until that checklist passes and a suitable release-signing method is available.
+
+## Latest automated evidence
+
+[CI #41753265249](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41753265249) passed 21/21 tests, WPF/native builds, 0.1.1 branded MSIX packaging, actual Windows Server 2025 signed install, application window title inspection and uninstall cleanup. This does not establish Windows 11 taskbar/caption visual acceptance.

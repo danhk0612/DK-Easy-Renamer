@@ -145,3 +145,7 @@ CI now downloads the exact 0.1.1 signed installer and matching public certificat
 The initial Server 2025 setup test was blocked at Inno PrepareToInstall because that runner's legacy Windows PowerShell could not load its security module. Setup now prefers already-installed PowerShell 7, otherwise uses the existing Windows PowerShell 5.1 fallback. It does not add a PowerShell 7 prerequisite for Windows 11.
 
 This is automated Windows Server 2025 package lifecycle proof, NOT Windows 11 GUI acceptance. Taskbar icon, native caption and actual UI rename/Undo remain pending real Windows 11 observation.
+
+## Automated implementation vs real Windows 11 acceptance
+
+Implementation PR #6 can merge after automated gates. **This does not close Windows 11 acceptance.** The actual Windows 11 tasks remain in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7) until evidence is recorded; no public Release/tag or claim of complete readiness beforehand.
