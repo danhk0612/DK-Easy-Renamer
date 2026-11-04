@@ -75,11 +75,13 @@ begin
 end;
 
 #ifndef SignedBuild
+  #if BuildFlavor != "APP-ONLY"
 function InitializeSetup(): Boolean;
 begin
   MsgBox('This is an unsigned CI packaging candidate. It cannot register the Explorer extension. Obtain a trusted signed build for installation.', mbCriticalError, MB_OK);
   Result := False;
 end;
+  #endif
 #endif
 
 
