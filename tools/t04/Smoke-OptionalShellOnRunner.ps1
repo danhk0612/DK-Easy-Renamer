@@ -36,19 +36,35 @@ if ((Get-AppxPackage -Name 'DKEasyRenamer.Shell') -or (Test-Path -LiteralPath $i
 }
 
 function Invoke-Executable([string]$file,[string[]]$args) {
+    $setup = [IO.Path]::GetFileName($file) -like 'DK-Easy-Renamer-*-x64-*.exe'
+    $log = Join-Path $env:RUNNER_TEMP ('dk-optional-inno-' + [guid]::NewGuid().ToString('N') + '.log')
+    if ($setup) { $args += ('/LOG="' + $log + '"') }
     Write-Host "START executable: $([IO.Path]::GetFileName($file))"
     $process = Start-Process -FilePath $file -ArgumentList $args -PassThru
     try {
-        if (-not $process.WaitForExit(120000)) {
+        if (-not $process.WaitForExit(90000)) {
+            Write-Host '=== Running Setup-related processes at timeout ==='
+            Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -like 'DK-Easy-Renamer*' -or $_.Name -like 'powershell*' -or $_.Name -like 'pwsh*' } |
+                Select-Object ProcessId,ParentProcessId,Name,CommandLine | Format-List | Out-String |
+                Write-Host
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "Process exceeded 120 seconds: $file"
+            throw "Process exceeded 90 seconds: $file"
         }
         if ($process.ExitCode -ne 0) {
             throw "Process returned exit $($process.ExitCode): $file"
         }
         Write-Host "PASS executable: $([IO.Path]::GetFileName($file))"
     }
-    finally { $process.Dispose() }
+    finally {
+        if ($setup) {
+            if (Test-Path -LiteralPath $log) {
+                Write-Host '=== Inno Setup log (last 80 lines) ==='
+                Get-Content -LiteralPath $log -Tail 80 | ForEach-Object { Write-Host $_ }
+            } else { Write-Host 'Inno Setup log was NOT created.' }
+        }
+        $process.Dispose()
+    }
 }
 function Assert-ShellState([int]$expected) {
     $shell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
