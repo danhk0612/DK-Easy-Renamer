@@ -1,12 +1,12 @@
-# T04 — Windows 11 final acceptance: NOT YET EXECUTED
+# T04 — Windows 11 final acceptance: PARTIALLY VERIFIED
 
-The T00–T05 code builds; T04 fixes a confirmed 0x800B0109 certificate failure, number-only sequence mode and light-mode contrast. CI runs on Windows Server and cannot prove the Windows 11 Explorer first-level context menu or WPF interactions actually work. Only actual Windows 11 x64 test evidence can close T04.
+The user has verified Windows 11 app installation, Explorer context-menu visibility and corrected Korean menu text. T04 also fixes a confirmed 0x800B0109 certificate issue and adds number-only renaming. Other GUI interactions, new branding and uninstall still require real Windows 11 evidence. CI on Windows Server cannot substitute for that evidence.
 
 ## Safety
 Use a dedicated Windows 11 test account or disposable VM. Never perform test renames on personal files or production network shares. T04 test scripts do not touch existing user files.
 
 ## Test-only installer preparation
-1. Download the artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** from the latest passing Windows CI of this repository. It includes DK-Easy-Renamer-0.1.0-x64-SIGNED-PROBE.exe, a public test certificate DKEasyRenamer-TEST-ONLY.cer, and SHA256SUMS.txt.
+1. Download the artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** from the latest passing Windows CI of this repository. It includes DK-Easy-Renamer-0.1.1-x64-SIGNED-PROBE.exe, a public test certificate DKEasyRenamer-TEST-ONLY.cer, and SHA256SUMS.txt.
 2. Check the SHA-256 hash, verify the file origin and compare the thumbprints:
 
     Get-AuthenticodeSignature .\DK-Easy-Renamer-0.1.0-x64-SIGNED-PROBE.exe | Format-List Status,SignerCertificate
@@ -128,3 +128,11 @@ User-confirmed physical observations, separate from CI:
 - Provisioning pending: stable reusable development PFX and GitHub environment secrets (source-only workflow configured).
 
 Do not mark T04 as fully accepted from these partial passes; use only disposable T04 fixture files for remaining operations.
+
+## Window chrome and taskbar branding — T04 visual check (2026-11-04)
+
+A physical test screenshot showed the old *DK letters on blue* taskbar icon although the main WPF UI used a document-and-pencil artwork. The older sparse package builder generated placeholder `Square44x44Logo.png`, used by the package identity for Windows taskbar. It is now resized from the same original PNG as the ICO, with transparent corners; the T05 package validator rejects the old opaque placeholder. The WPF window explicitly carries the same ICO as a resource.
+
+The native caption previously displayed a blue title band without visible text, despite `Title=DK Easy Renamer` in XAML. `MainWindow.Caption.cs` now writes the title to the Win32 HWND and requests DWM white caption text on the #2D7BC6 caption, preserving Windows standard minimize/maximize/close controls. Test build version is incremented to **0.1.1** to distinguish the changed package assets from the old 0.1.0 install.
+
+**To verify on Windows 11:** Install the new signed 0.1.1 probe using its corresponding trusted test certificate; close existing app windows, restart Explorer or sign out if an old icon is cached. Confirm (a) taskbar, titlebar and Start-menu icon use the document/pencil mark, (b) top native title reads `DK Easy Renamer` in white on blue, (c) basic minimize/maximize/close/drag behavior remains intact, and (d) Light/Dark theme switching still reads clearly. User-observed PASS/FAIL required; a passing image/COM build is not enough.

@@ -1,6 +1,6 @@
 # Tasks — sequential delivery baseline
 
-Updated 2026-11-04: T00–T03 and T05 are merged. T04 is open as PR #6 with partial Windows 11 acceptance evidence. The reusable development signing workflow is implemented in this PR but cannot issue an artifact with a fixed certificate until a developer provisions its PFX and protected GitHub environment values.
+Updated 2026-11-04: T00–T03 and T05 are merged. T04 additionally corrects packaged taskbar logos and native caption and builds a distinct 0.1.1 test package. T04 is open as PR #6 with partial Windows 11 acceptance evidence. The reusable development signing workflow is implemented in this PR but cannot issue an artifact with a fixed certificate until a developer provisions its PFX and protected GitHub environment values.
 
 | Stage | Status |
 |---|---|
@@ -9,7 +9,7 @@ Updated 2026-11-04: T00–T03 and T05 are merged. T04 is open as PR #6 with part
 | T02 rename core | Merged; disposable filesystem tests pass |
 | T03 Fluent GUI | Merged; compile pass; actual apply/Undo, sorting and theme require testing |
 | T05 installer | Merged; signed test installation and package registration confirmed; upgrade/uninstall unverified |
-| T04 integrated acceptance | PARTIAL PASS: modern context-menu visibility and readable Korean title; remaining user flows unverified |
+| T04 integrated acceptance | PARTIAL PASS: modern context-menu visibility and readable Korean title; new 0.1.1 taskbar/titlebar icons and remaining user flows require physical verification |
 
 ## Reusable test certificate
 - tools/t05/New-StableDevCertificate.ps1 creates a one-time PRIVATE PFX OUTSIDE the repo.

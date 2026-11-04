@@ -34,7 +34,7 @@ Run locally on Windows 11 with .NET 10 SDK, C++ Build Tools / Windows SDK and In
     powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t05\Build-Distribution.ps1
     powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t05\Validate-Distribution.ps1
 
-Output: artifacts/t05/installer/DK-Easy-Renamer-0.1.0-x64-UNSIGNED-DO-NOT-INSTALL.exe, artifacts/t05/DKEasyRenamer.Shell.msix, SHA256SUMS.txt.
+Output: artifacts/t05/installer/DK-Easy-Renamer-0.1.1-x64-UNSIGNED-DO-NOT-INSTALL.exe, artifacts/t05/DKEasyRenamer.Shell.msix, SHA256SUMS.txt.
 
 For a signed local test build, call Build-Distribution.ps1 with -Publisher matching the exact code-signing cert subject and -CertificateThumbprint, then explicitly trust the certificate on that test machine before installation. Alternatively, obtain the CI artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** containing the test-only signed installer and **DKEasyRenamer-TEST-ONLY.cer**. On an isolated test PC, inspect that public certificate, then *explicitly* import it into LocalMachine\TrustedPeople using elevated PowerShell before launching the signed installer; remove the certificate after testing. Never trust certificates from unverified sources or upload private keys/passwords.
 
@@ -120,3 +120,7 @@ References:
 - https://cli.github.com/manual/gh_secret_set
 - https://cli.github.com/manual/gh_variable_set
 - https://learn.microsoft.com/en-us/windows/msix/package/sign-msix-package-guide
+
+## Branding for package identity (T04)
+
+Unlike the WPF window icon, the Windows taskbar uses the `Square44x44Logo.png` declared in `AppxManifest.xml` after sparse package registration. The builder now resizes the original 256px document/pencil PNG to all three MSIX visual logos, removing the previous `DK` text placeholder. The WPF window explicitly embeds and uses its original ICO. The 0.1.1 test version prevents mixing new assets with the old 0.1.0 package identity. After updating, restart Explorer/sign out if taskbar pinning caches the old glyph; remove/re-pin an old shortcut only when needed.
