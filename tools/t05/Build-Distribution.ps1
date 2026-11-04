@@ -3,7 +3,7 @@
 [CmdletBinding()]
 param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [string]$Version = '0.1.1',
+    [string]$Version = '0.1.2',
     [string]$Publisher = 'CN=DK Easy Renamer Development',
     [string]$CertificateThumbprint = ''
 )
