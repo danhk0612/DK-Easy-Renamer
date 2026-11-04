@@ -42,10 +42,8 @@ CloseApplications=yes
 RestartApplications=no
 DisableProgramGroupPage=yes
 
-#ifdef SignedBuild
 [Tasks]
 Name: shellmenu; Description: "Windows 11 탐색기 우클릭 메뉴 등록"; Flags: unchecked
-#endif
 
 [Files]
 ;; The certificate is checked only for the optional modern context menu.
@@ -138,6 +136,30 @@ begin
   if WizardIsTaskSelected('shellmenu') and not CheckShellCertificate() then
     Result := 'Explorer menu certificate is not trusted. Uncheck the optional ' +
       'context menu task to install the base app without shell integration.';
+end;
+#endif
+
+#ifndef SignedBuild
+procedure CurPageChanged(CurPageID: Integer);
+var
+  Index: Integer;
+begin
+  if CurPageID = wpSelectTasks then
+  begin
+    Index := WizardForm.TasksList.Items.IndexOf('Windows 11 탐색기 우클릭 메뉴 등록');
+    if Index >= 0 then
+    begin
+      WizardForm.TasksList.Checked[Index] := False;
+      WizardForm.TasksList.ItemEnabled[Index] := False;
+    end;
+  end;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  if WizardIsTaskSelected('shellmenu') then
+    Result := 'An unsigned application-only build cannot register the Windows 11 Explorer menu.';
 end;
 #endif
 
