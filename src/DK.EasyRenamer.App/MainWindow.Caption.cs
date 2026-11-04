@@ -21,7 +21,9 @@ public partial class MainWindow
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetWindowText(nint hwnd, string text);
 
-    private void OnWindowSourceInitialized(object? sender, EventArgs e)
+    private void OnWindowSourceInitialized(object? sender, EventArgs e) => ApplyNativeCaptionStyle();
+
+    private void ApplyNativeCaptionStyle()
     {
         // Keep the native, movable/resizable Windows 11 caption and its system buttons.
         // Explicitly set its text/colors: a branded caption must not render as a blank blue bar.
