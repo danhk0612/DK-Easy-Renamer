@@ -184,3 +184,19 @@ Removing a package by `Get-AppxPackage -Name DKEasyRenamer.Shell` alone does **n
 ### Remaining publisher migration and rollback gate
 
 No publicly trusted signer has been approved, so a cross-publisher migration remains blocked. A future, separately approved migration must first establish verified backup/restore artifacts for the old and new package identities, installed binaries, file paths and user settings, then test failure recovery on Windows 11. This change only makes the **existing removal path fail closed** until those conditions are satisfied.
+
+## UX-07e: read-only migration readiness report (no state changes)
+
+The next preparatory stage is documented in
+[UX07_PUBLISHER_MIGRATION_READINESS.md](UX07_PUBLISHER_MIGRATION_READINESS.md).
+
+The new command reads the current user's owned Explorer registration, the old
+MSIX package identity and checksum, and the proposed new MSIX identity and
+signer metadata. It emits a JSON classification and identifies recovery inputs
+still missing. It has **no apply or rollback mode**: no current-user package,
+registry key, certificate, user data or installation is changed. The report
+never constitutes public-signing approval.
+
+CI runs an isolated fake-package/owner-state matrix with Appx mutations
+explicitly prohibited. Real cross-publisher migration and rollback on Windows
+11 remain blocked until a public signing and distribution policy is approved.
