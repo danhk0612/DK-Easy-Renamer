@@ -1,6 +1,6 @@
 # Tasks — sequential delivery baseline
 
-Updated 2026-11-04: T00–T03 and T05 are merged. T04 additionally corrects packaged taskbar logos and native caption and builds a distinct 0.1.1 test package. T04 is open as PR #6 with partial Windows 11 acceptance evidence. The reusable development signing workflow is implemented in this PR but cannot issue an artifact with a fixed certificate until a developer provisions its PFX and protected GitHub environment values.
+Updated 2026-11-05: T00–T03 and T05 are merged. T04 implementation was merged; user-observed Windows 11 interactive acceptance remains open in issue #7. UX-07 development continues through merged PR #27, but the public signer, Release and real-device migration/rollback gates remain open.
 
 | Stage | Status |
 |---|---|
@@ -18,8 +18,22 @@ Updated 2026-11-04: T00–T03 and T05 are merged. T04 additionally corrects pack
 - No private key, password or encoded key is committed or uploaded in any build artifact.
 
 ## Gate
-PR #6 contains the T04 code and automated checks and may merge after CI passes. Windows 11 interactive acceptance is tracked separately in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7), and remains INCOMPLETE until explicit user observations. No public Release/tag until that checklist passes and a suitable release-signing method is available.
+The T04 code was merged after its automated checks. Windows 11 interactive acceptance is tracked separately in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7), and remains INCOMPLETE until explicit user observations. No public Release/tag until that checklist passes and a suitable release-signing method is available.
 
 ## Latest automated evidence
 
 [CI #41753265249](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41753265249) passed 21/21 tests, WPF/native builds, 0.1.1 branded MSIX packaging, actual Windows Server 2025 signed install, application window title inspection and uninstall cleanup. This does not establish Windows 11 taskbar/caption visual acceptance.
+
+## UX-07 progress (2026-11-05)
+
+| Work | State |
+|---|---|
+| UX-07a manual stable Release check | Merged; user-initiated only |
+| UX-07b guarded download and installer handoff | Merged through #22; actual public install blocked pending public signing identity |
+| UX-07c/d conflicting publisher and owner guards | Merged #23–#24; no automatic cross-publisher removal |
+| UX-07e read-only migration diagnostics | Merged #25; never authorizes migration |
+| UX-07f local-data snapshot rehearsal | Merged #26; new-directory restore rehearsal only |
+| UX-07g signed old installer/MSIX archive rehearsal | Merged #27; no live rollback |
+| T04/UX-07 final Windows 11 approval | Open issues #7 and #10 |
+
+Do not equate Windows Server 2025 CI signatures, ephemeral test trust, or a backed-up installer with approval for an actual Windows 11 public publisher migration. A future implementation must be independently scoped, preserve verified rollback materials, explicitly obtain user approval, and test both successful and failed transitions on a disposable Windows 11 machine. The current release/tag prohibition remains.
