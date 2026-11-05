@@ -112,7 +112,27 @@ try {
         throw 'Empty restore failed.'
     }
 
-    Write-Host 'PASS: local backup, SHA verified restore to new dir, tamper and overwrite protection.'
+    Write-Host 'PHASE 9: reject junctions in source, snapshot, and restore path ancestors'
+    $linkedSource = Join-Path $root 'linked-source'
+    New-Item -ItemType Junction -Path $linkedSource -Target $source | Out-Null
+    $linkedSourceBackup = Join-Path $root 'linked-source-backup'
+    Assert-Rejected { Invoke-Mode 'Backup' $linkedSource $linkedSourceBackup } 'source path is a junction'
+    if (Test-Path -LiteralPath $linkedSourceBackup) { throw 'Linked source created a backup.' }
+
+    $realParent = Join-Path $root 'real-destination-parent'
+    $linkedParent = Join-Path $root 'linked-destination-parent'
+    New-Item -ItemType Directory -Path $realParent | Out-Null
+    New-Item -ItemType Junction -Path $linkedParent -Target $realParent | Out-Null
+    Assert-Rejected { Invoke-Mode 'Backup' $source (Join-Path $linkedParent 'backup') } 'backup parent is a junction'
+    if (Test-Path -LiteralPath (Join-Path $realParent 'backup')) { throw 'Linked parent created a backup.' }
+
+    $linkedSnapshot = Join-Path $root 'linked-snapshot'
+    New-Item -ItemType Junction -Path $linkedSnapshot -Target $snapshot | Out-Null
+    Assert-Rejected { Invoke-Mode 'Verify' $linkedSnapshot $null } 'snapshot path is a junction'
+    Assert-Rejected { Invoke-Mode 'RestoreToNewDirectory' $snapshot (Join-Path $linkedParent 'restore') } 'restore parent is a junction'
+    if (Test-Path -LiteralPath (Join-Path $realParent 'restore')) { throw 'Linked parent created a restore directory.' }
+
+    Write-Host 'PASS: local backup, SHA verified restore to new dir, tamper, overwrite and ancestor junction protection.'
     Write-Host 'This test never attempts production migration or restores any real AppData.'
 }
 finally {
