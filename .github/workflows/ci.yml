@@ -99,6 +99,7 @@ jobs:
           }
       - name: Verify signed-fixture update handoff and cleanup in disposable CI
         shell: pwsh
+        timeout-minutes: 6
         run: ./tools/ux07/Test-VerifiedUpdateExecution.ps1
       - name: Reject unsafe updater staging paths without running an installer
         shell: pwsh
