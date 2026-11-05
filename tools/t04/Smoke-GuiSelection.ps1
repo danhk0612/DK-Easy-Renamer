@@ -39,7 +39,8 @@ public static class DkCiAsyncUiInvoke
 }
 '@
 $uiAssembly = [System.Windows.Automation.AutomationElement].Assembly.Location
-Add-Type -TypeDefinition $invokerSource -ReferencedAssemblies @($uiAssembly)
+Add-Type -TypeDefinition $invokerSource -ReferencedAssemblies @(
+    $uiAssembly, [System.Windows.Automation.AutomationPattern].Assembly.Location)
 
 function Invoke-UiButton($element) {
     if ($null -eq $element -or -not $element.Current.IsEnabled) {
