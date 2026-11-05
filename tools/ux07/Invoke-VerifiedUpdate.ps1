@@ -15,8 +15,10 @@ Set-StrictMode -Version Latest
 
 # The updater creates a fresh 32-hex folder for EACH downloaded installer.
 # Never accept an arbitrary caller-supplied directory or follow a reparse point.
+$appDataRoot = [IO.Path]::GetFullPath(
+    (Join-Path $env:LOCALAPPDATA 'DK Easy Renamer')).TrimEnd('\')
 $stagingRoot = [IO.Path]::GetFullPath(
-    (Join-Path $env:LOCALAPPDATA 'DK Easy Renamer\Updates')).TrimEnd('\')
+    (Join-Path $appDataRoot 'Updates')).TrimEnd('\')
 $installer = [IO.Path]::GetFullPath($InstallerPath)
 $folder = [IO.Path]::GetDirectoryName($installer)
 $folderName = [IO.Path]::GetFileName($folder)
@@ -32,7 +34,7 @@ if ($folderName -cnotmatch '^[0-9a-f]{32}$' -or
 }
 
 # Reject link/junction substitution in every mutable part of the staging path.
-foreach ($part in @($stagingRoot, $folder, $installer)) {
+foreach ($part in @($appDataRoot, $stagingRoot, $folder, $installer)) {
     $attributes = (Get-Item -LiteralPath $part -Force).Attributes
     if (($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
         throw 'Installer staging cannot contain symbolic links or junctions.'
