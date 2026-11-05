@@ -22,7 +22,15 @@ public static class RenamePlanner
         foreach (RenameSelection selected in selection)
         {
             string path;
-            try { path = Path.GetFullPath(selected.Path).TrimEnd(Path.DirectorySeparatorChar); }
+            try
+            {
+                path = Path.GetFullPath(selected.Path);
+                string root = Path.GetPathRoot(path)!;
+                // A drive or share root must keep its trailing separator:
+                // "C:\\" and "C:" refer to different locations on Windows.
+                if (!string.Equals(path, root, StringComparison.OrdinalIgnoreCase))
+                    path = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
             {
                 list.Add(new RenamePlanItem(selected.Path, selected.Path, selected.Included,
