@@ -94,6 +94,23 @@ try {
     Assert-Rejected { & $helper -Mode Verify -SnapshotDirectory $snapshot } 'unlisted content'
     Remove-Item -LiteralPath $extra -Force
 
+    Write-Host 'PHASE 6b: unexpected snapshot root entries must be rejected'
+    $rootExtra = Join-Path $snapshot 'unlisted.txt'
+    [IO.File]::WriteAllText($rootExtra,'not part of the backup')
+    Assert-Rejected { & $helper -Mode Verify -SnapshotDirectory $snapshot } 'unlisted snapshot root file'
+    $rootFileTarget = Join-Path $root 'must-not-restore-root-extra'
+    Assert-Rejected { & $helper -Mode RestoreToNewDirectory -SnapshotDirectory $snapshot -RestoreDirectory $rootFileTarget } 'restoring snapshot with extra root file'
+    if (Test-Path -LiteralPath $rootFileTarget) { throw 'Unexpected root file created a restore target.' }
+    Remove-Item -LiteralPath $rootExtra -Force
+
+    $rootExtraDirectory = Join-Path $snapshot 'unlisted folder'
+    New-Item -ItemType Directory -Path $rootExtraDirectory | Out-Null
+    Assert-Rejected { & $helper -Mode Verify -SnapshotDirectory $snapshot } 'unlisted snapshot root directory'
+    Remove-Item -LiteralPath $rootExtraDirectory -Force
+
+    $clean = Invoke-Mode 'Verify' $snapshot $null
+    if (-not $clean.Verified) { throw 'Clean snapshot was rejected after removing unexpected root entries.' }
+
     Write-Host 'PHASE 7: snapshot destination cannot be nested in source'
     Assert-Rejected { & $helper -Mode Backup -SourceDirectory $source -SnapshotDirectory (Join-Path $source 'nestedBackup') } 'nested snapshot'
     if (Test-Path -LiteralPath (Join-Path $source 'nestedBackup')) {
