@@ -30,11 +30,12 @@ if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) {
 }
 
 if ($RunId -eq 0) {
-    $json = & gh run list -R $repo --workflow ci.yml --branch main --event push --limit 50 --json databaseId,headSha,status,conclusion
+    $json = & gh run list -R $repo --workflow ci.yml --branch main --limit 50 --json databaseId,headSha,status,conclusion,event
     if ($LASTEXITCODE -ne 0) { throw 'Unable to list GitHub Actions runs; check gh auth status.' }
     $matching = @($json | ConvertFrom-Json | Where-Object {
-        $_.headSha -eq $head -and $_.status -eq 'completed' -and $_.conclusion -eq 'success'
-    })
+        $_.headSha -eq $head -and $_.status -eq 'completed' -and
+        $_.conclusion -eq 'success' -and $_.event -in @('push','workflow_dispatch')
+    } | Sort-Object -Property databaseId -Descending)
     if ($matching.Count -eq 0) {
         throw 'No successful main CI run for this checkout. Check Actions, run ci.yml on main if needed, then retry.'
     }
