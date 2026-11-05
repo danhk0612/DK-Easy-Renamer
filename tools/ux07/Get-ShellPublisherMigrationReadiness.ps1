@@ -124,6 +124,16 @@ $requiredRecovery = if ($decision -eq 'manual-publisher-migration-required') {
     )
 } else { @() }
 
+$existingPackageReport = $null
+if ($registered.Count -eq 1) {
+    $existingPackageReport = [ordered]@{
+        PackageFullName = [string]$registered[0].PackageFullName
+        Publisher = [string]$registered[0].Publisher
+        PackageFamilyName = [string]$registered[0].PackageFamilyName
+        Version = [string]$registered[0].Version
+    }
+}
+
 $report = [ordered]@{
     SchemaVersion = 1
     Decision = $decision
@@ -134,14 +144,7 @@ $report = [ordered]@{
     OwnerRecordPresent = $keyPresent
     OwnerExecutablePath = $owner
     ExistingRegistrationCount = $registered.Count
-    ExistingPackage = if ($registered.Count -eq 1) {
-        [ordered]@{
-            PackageFullName = [string]$registered[0].PackageFullName
-            Publisher = [string]$registered[0].Publisher
-            PackageFamilyName = [string]$registered[0].PackageFamilyName
-            Version = [string]$registered[0].Version
-        }
-    } else { $null }
+    ExistingPackage = $existingPackageReport
     InstalledMsix = $old
     InstalledMsixReadError = $oldReadError
     CandidateMsix = $candidate
