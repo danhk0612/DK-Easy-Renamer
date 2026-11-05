@@ -2,7 +2,7 @@
 
 A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
 
-> **Status (2026-11-04):** T00–T03 are merged. T05 builds a per-user self-contained Windows setup with Sparse MSIX identity registration; unsigned CI candidates are deliberately **non-installable**. Actual signed installation, first-level Explorer menu and end-to-end UI are unverified until T04.
+> **Status (2026-11-05):** T00–T03 and T05 are merged. Windows Server 2025 CI validates signed test installs, upgrades, and optional Explorer registration; Windows 11 interactive acceptance is still open in issue #7. UX-07 manual update checks and guarded installer handoff exist, but public in-app update installation remains blocked until an approved public signing identity, a signed Release, and real Windows 11 validation. Development/CI test signatures must not be used for public releases.
 
 ## Product goals
 
@@ -76,3 +76,11 @@ The sparse MSIX taskbar logo and native WPF window caption now match the origina
 - Application and installer versions are both raised to **0.1.2** for accurate MSIX sparse identity upgrade validation.
 - Windows Server 2025 CI checks launch, quick-mode handoff, package registration and uninstall. Windows 11 menu layout and actual Apply/Undo still require issue #7 approval.
 - Use a manually dispatched GitHub workflow with stable_dev_signing=true to obtain a test installer signed with the existing persistent development certificate. Ordinary PR certificates rotate.
+
+### UX-07 latest safety status (2026-11-05)
+
+- PRs #19–#22 implement guarded official Release download, SHA-256 and pinned Authenticode verification, explicit install approval, single-use installer handoff/cleanup, and CI-only signed test-fixture regression checks.
+- PRs #23–#25 guard mismatched MSIX publishers and provide read-only pre-migration diagnostics. A publisher switch changes package identity and is **not** automatically migrated or removed.
+- PRs #26–#27 provide separate, opt-in local-data snapshot and old signed EXE/MSIX archive rehearsal tools. They do **not** install, unregister, migrate, or roll back a live application.
+- Remaining gates: approve a public signing identity and matching released packages; validate actual Windows 11 context menu, rename/Undo, uninstall, upgrade, publisher migration and recovery. See [issue #10](https://github.com/danhk0612/DK-Easy-Renamer/issues/10), [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7), and [rollback archive guide](docs/UX07_SIGNED_ROLLBACK_ARCHIVE.md).
+- No public Release or tag is authorized by automated CI success alone.
