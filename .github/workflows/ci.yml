@@ -100,6 +100,9 @@ jobs:
       - name: Reject silent MSIX publisher replacement before registration
         shell: pwsh
         run: ./tools/t04/Smoke-PublisherTransition.ps1
+      - name: Refuse unowned or mismatched Explorer unregister
+        shell: pwsh
+        run: ./tools/t04/Smoke-OwnedShellUnregister.ps1
       - name: Verify signed-fixture update handoff and cleanup in disposable CI
         shell: pwsh
         timeout-minutes: 6
