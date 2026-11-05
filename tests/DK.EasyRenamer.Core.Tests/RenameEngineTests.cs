@@ -114,6 +114,32 @@ public sealed class RenameEngineTests
         Assert.False(RenamePlanner.ValidName("trailing."));
     }
 
+    [Theory]
+    [InlineData("COM¹")]
+    [InlineData("com².txt")]
+    [InlineData("COM³.backup.tar")]
+    [InlineData("LPT¹")]
+    [InlineData("lpt².csv")]
+    [InlineData("LPT³.txt")]
+    public void SuperscriptDeviceNamesAreRejectedByWindowsNameValidation(string deviceName)
+    {
+        Assert.False(RenamePlanner.ValidName(deviceName));
+    }
+
+    [Fact]
+    public void PlannerBlocksSuperscriptDeviceNameBeforeAnyFilesystemWrite()
+    {
+        using var f = new WorkFolder();
+        string source = f.File("original.txt", "untouched");
+        var plan = RenamePlanner.Build([new RenameSelection(source)],
+            [new ReplaceRule("original", "COM¹")]);
+        Assert.False(plan.IsValid);
+        Assert.Contains(plan.Errors, e => e.Contains("invalid or reserved", StringComparison.OrdinalIgnoreCase));
+        var result = RenameExecutor.Apply(plan);
+        Assert.False(result.Succeeded);
+        Assert.Equal("untouched", System.IO.File.ReadAllText(source));
+    }
+
     [Fact]
     public void ExistingDestinationIsNeverOverwritten()
     {
