@@ -47,6 +47,10 @@ jobs:
           $errors = $null
           [System.Management.Automation.Language.Parser]::ParseFile('tools/t05/Configure-StableDevSigning.ps1',[ref]$tokens,[ref]$errors) | Out-Null
           if ($errors.Count -gt 0) { throw "Stable signing environment setup helper parse error: $($errors[0])" }
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('tools/ux07/Invoke-SignedRollbackArchive.ps1',[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw "Signed rollback archive script syntax error: $($errors[0])" }
           $created = ./tools/t04/New-TestFixtures.ps1
           $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
           if (-not $created.Root.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or

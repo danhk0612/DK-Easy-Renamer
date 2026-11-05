@@ -84,6 +84,15 @@ try {
         }
     }
 
+    # Exercise rollback-archive integrity using the SAME TEMPORARY CI signer.
+    # This is a data-only rehearsal and must not launch old or new setup.
+    & (Join-Path $PSScriptRoot 'Smoke-SignedRollbackArchive.ps1') `
+        -OldSetup $oldSetup `
+        -OldMsix (Join-Path $root 'old\DKEasyRenamer.Shell.msix') `
+        -NewMsix (Join-Path $root 'new\DKEasyRenamer.Shell.msix') `
+        -PinnedSubject $public.Subject `
+        -PinnedThumbprint $public.Thumbprint
+
     # Fresh installation of the old build.
     Invoke-Setup $oldSetup
     Assert-Version '0.1.2.0'
