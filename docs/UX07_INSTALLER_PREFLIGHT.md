@@ -109,3 +109,16 @@ For a qualifying downloaded installer:
 - Do not enable installer launch by substituting test signer values, trusting a self-signed certificate automatically, or allowing unsigned executables.
 
 This is a guarded install workflow, **not** a usable public automatic updater until those gates are explicitly completed.
+
+## UX-07b (part 4): one-shot installer process and post-success staging cleanup
+
+The app-side user confirmation and public publisher gate remain unchanged. On final approval the app now hands the downloaded installer to the packaged `Invoke-VerifiedUpdate.ps1` one-shot process instead of launching Inno Setup directly.
+
+- This external PowerShell process survives Inno Setup closing/replacing the WPF application. It repeats the **same** SHA-256, trusted Authenticode and pinned public publisher verification immediately before invoking Setup.
+- The one-shot process launches Setup with the existing shell-selection parameter (`/TASKS=shellmenu` or `/TASKS=`) and waits for the installer process tree to finish. It does not poll the network, run at system startup, auto-elevate, create scheduled tasks, or import any certificate.
+- After a **zero exit code** and verification that the installed file has not changed into a symlink or different digest, it deletes **only that exact downloaded .exe**. It removes the unique 32-hex staging directory only if empty; it never recursively deletes anything from the user's Downloads, documents, arbitrary paths or unrelated update folders.
+- Before any launch, the helper allows only `%LOCALAPPDATA%\DK Easy Renamer\Updates\<32-lowercase-hex>\DK-Easy-Renamer-X.Y.Z-x64-RELEASE.exe` and rejects a reparse point at the app data directory, update root, attempt directory or installer. It does **not** accept development probes/APP-ONLY files.
+- Canceled/failed installations, interrupted helpers and unexpected file modifications may leave the staged file behind. No recurring cleanup service is installed. A future explicit retention or retry policy must not silently delete these files.
+- The dedicated Windows CI stage-path smoke uses fake bytes and `-CheckStagingPathOnly` (no signature verification, launch or removal) to assert invalid/outside paths are rejected; packaging checks ensure the one-shot helper is included. Existing installation and upgrade CI smoke remain unchanged.
+
+This is **not** an end-to-end public installer test: no publicly signed release exists and this process/handoff cannot yet be exercised with a real approved publisher. Test the helper's real Setup process-tree wait and post-success cleanup on a disposable Windows 11 VM with an approved release before declaring public updater readiness. In-app update execution remains disabled by the empty `PublicUpdatePolicy` identity.
