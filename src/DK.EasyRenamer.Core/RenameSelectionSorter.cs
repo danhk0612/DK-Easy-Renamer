@@ -23,24 +23,24 @@ public static class RenameSelectionSorter
             _ => StringComparer.OrdinalIgnoreCase
         };
 
-        IEnumerable<RenameSelection> ordered;
-        switch (field)
+        // OrderByDescending, unlike reversing an ascending result, keeps
+        // the original user order when two items have equal sort keys.
+        var ordered = field switch
         {
-            case RenameSortField.CreatedUtc:
-                ordered = indexed.OrderBy(x => x.State.CreatedUtc).Select(x => x.Item);
-                break;
-            case RenameSortField.ModifiedUtc:
-                ordered = indexed.OrderBy(x => x.State.LastWriteUtc).Select(x => x.Item);
-                break;
-            case RenameSortField.Size:
-                ordered = indexed.OrderBy(x => x.State.Length).Select(x => x.Item);
-                break;
-            default:
-                ordered = indexed.OrderBy(x => x.Name, comparer).Select(x => x.Item);
-                break;
-        }
-        // Stable sort preserves original selection order for ties.
-        return (descending ? ordered.Reverse() : ordered).ToArray();
+            RenameSortField.CreatedUtc => descending
+                ? indexed.OrderByDescending(x => x.State.CreatedUtc)
+                : indexed.OrderBy(x => x.State.CreatedUtc),
+            RenameSortField.ModifiedUtc => descending
+                ? indexed.OrderByDescending(x => x.State.LastWriteUtc)
+                : indexed.OrderBy(x => x.State.LastWriteUtc),
+            RenameSortField.Size => descending
+                ? indexed.OrderByDescending(x => x.State.Length)
+                : indexed.OrderBy(x => x.State.Length),
+            _ => descending
+                ? indexed.OrderByDescending(x => x.Name, comparer)
+                : indexed.OrderBy(x => x.Name, comparer)
+        };
+        return ordered.Select(x => x.Item).ToArray();
     }
 
     public static int NaturalCompare(string? left, string? right)
