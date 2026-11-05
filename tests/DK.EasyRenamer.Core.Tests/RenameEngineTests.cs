@@ -64,6 +64,42 @@ public sealed class RenameEngineTests
     }
 
     [Fact]
+    public void DriveRootIsNeverReinterpretedAsDriveRelativeOrRenamed()
+    {
+        using var f = new WorkFolder();
+        string root = Path.GetPathRoot(f.Root)!;
+        var plan = RenamePlanner.Build([new RenameSelection(root)],
+            [new AddTextRule("unsafe_")]);
+
+        Assert.False(plan.IsValid);
+        Assert.Equal(root, plan.Items[0].OriginalPath);
+        Assert.Equal(root, plan.Items[0].TargetPath);
+        Assert.Contains(plan.Errors, error =>
+            error.Contains("Root directory cannot be renamed", StringComparison.Ordinal));
+        Assert.False(RenameExecutor.Apply(plan).Succeeded);
+        Assert.True(Directory.Exists(root));
+    }
+
+    [Fact]
+    public void DirectoryWithTrailingSeparatorStillUsesNormalRenameRules()
+    {
+        using var f = new WorkFolder();
+        string folder = Path.Combine(f.Root, "oldFolder");
+        Directory.CreateDirectory(folder);
+        var plan = RenamePlanner.Build(
+            [new RenameSelection(folder + Path.DirectorySeparatorChar)],
+            [new ReplaceRule("old", "new")]);
+
+        Assert.True(plan.IsValid, string.Join("; ", plan.Errors));
+        Assert.Equal(folder, plan.Items[0].OriginalPath);
+        Assert.Equal(Path.Combine(f.Root, "newFolder"), plan.Items[0].TargetPath);
+        var applied = RenameExecutor.Apply(plan);
+        Assert.True(applied.Succeeded, string.Join("; ", applied.Errors));
+        Assert.True(RenameExecutor.Undo(applied.Undo!).Succeeded);
+        Assert.True(Directory.Exists(folder));
+    }
+
+    [Fact]
     public void NaturalSortHandlesNumbersAndSortDirection()
     {
         using var f = new WorkFolder();
