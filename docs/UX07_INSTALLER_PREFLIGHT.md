@@ -122,3 +122,29 @@ The app-side user confirmation and public publisher gate remain unchanged. On fi
 - The dedicated Windows CI stage-path smoke uses fake bytes and `-CheckStagingPathOnly` (no signature verification, launch or removal) to assert invalid/outside paths are rejected; packaging checks ensure the one-shot helper is included. Existing installation and upgrade CI smoke remain unchanged.
 
 This is **not** an end-to-end public installer test: no publicly signed release exists and this process/handoff cannot yet be exercised with a real approved publisher. Test the helper's real Setup process-tree wait and post-success cleanup on a disposable Windows 11 VM with an approved release before declaring public updater readiness. In-app update execution remains disabled by the empty `PublicUpdatePolicy` identity.
+
+## UX-07b (part 5): isolated signed-fixture execution regression
+
+`tools/ux07/Test-VerifiedUpdateExecution.ps1` is a CI-only test. It refuses to run outside a disposable Windows GitHub Actions runner. After .NET 10 is set up, it compiles a harmless console program that only records its received installer arguments and exits with a controllable code. On the runner alone, the test creates a one-day private **CI test CA** and a CA-issued temporary code-signing leaf, explicitly trusts the root in the disposable CI runner's LocalMachine Root store (administrator-only, avoiding CurrentUser interactive consent), then signs that fixture executable. The private key/PFX is never exported or uploaded, and the test removes the temporary test trust when done.
+
+Without changing or bypassing the product's `Validate-PublicInstaller.ps1` or the unconfigured `PublicUpdatePolicy`, the test passes the fixture through the **real** `Invoke-VerifiedUpdate.ps1`:
+
+1. Test fixture exits zero with `/TASKS=`: download staging file and empty GUID folder are deleted.
+2. Test fixture exits zero with `/TASKS=shellmenu`: the original optional Explorer preference is forwarded and staging cleaned.
+3. Test fixture exits nonzero: runner reports failure and leaves this stage intact.
+4. Incorrect expected SHA-256: fixture never runs and downloaded bytes are preserved.
+5. Successful fixture with unrelated sentinel file in its GUID folder: only the installer EXE is deleted; sentinel and folder remain.
+
+These are **test certificates**, not certificates to deploy to users, and this verifies handoff/cleanup logic rather than a publicly trusted CA or real Inno Setup upgrade. In particular the test never fills in the public publisher policy and never publishes a GitHub Release. Real Windows 11 interactive acceptance remains a separate gate.
+
+### Current signing-service eligibility (verified 2026-11)
+
+Microsoft's Artifact Signing quickstart presently lists **South Korea for organization Public Trust**, while **individual Public Trust** requires USA or Canada. Microsoft Store individual developer registration is available free of charge through the new Store onboarding, with Store-signed MSIX packages, but switching this existing Inno Setup + sparse MSIX Explorer integration to Store distribution would require a separate packaging and identity migration project; it is not a direct substitute for signing the existing EXE distribution. Standard CA code-signing is an external option, subject to the CA's applicant identity requirements, fees, issuer changes and renewal/rotation. The current policy pins one exact public leaf certificate thumbprint; if the chosen signer rotates its leaf certificates, a vetted rotation policy must be implemented **before** activation.
+
+Authoritative references:
+- https://learn.microsoft.com/en-gb/azure/artifact-signing/quickstart
+- https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options
+- https://learn.microsoft.com/en-us/windows/apps/publish/whats-new-individual-developer
+- https://learn.microsoft.com/en-us/windows/msix/package/sign-msix-package-guide
+
+**No public signing provider is selected by this test, no certificate enrollment is performed, and user-facing install remains fail-closed.**
