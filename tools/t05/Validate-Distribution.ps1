@@ -16,6 +16,7 @@ $msix = Join-Path $art 'DKEasyRenamer.Shell.msix'
 foreach ($file in @(
     $exe, (Join-Path $app 'DK.EasyRenamer.Shell.dll'),
     (Join-Path $app 'DK-Easy-Renamer.ico'),
+    (Join-Path $app 'Validate-PublicInstaller.ps1'),
     (Join-Path $app 'Assets\StoreLogo.png'),
     (Join-Path $app 'Assets\Square44x44Logo.png'),
     (Join-Path $app 'Assets\Square150x150Logo.png'),
@@ -93,6 +94,7 @@ foreach ($script in @(
     'installer\windows\Register-Shell.ps1',
     'installer\windows\Preflight-Shell.ps1',
     'installer\windows\Unregister-Shell.ps1',
+    'tools\ux07\Validate-PublicInstaller.ps1',
     'tools\t05\Build-Distribution.ps1'
 )) {
     $source = Join-Path $root $script

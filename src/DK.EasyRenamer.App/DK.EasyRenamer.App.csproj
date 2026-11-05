@@ -14,4 +14,10 @@
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <ProjectReference Include="..\DK.EasyRenamer.Core\DK.EasyRenamer.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\tools\ux07\Validate-PublicInstaller.ps1"
+             Link="Validate-PublicInstaller.ps1"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
