@@ -155,7 +155,7 @@ Implementation PR #6 can merge after automated gates. **This does not close Wind
 
 The ephemeral Windows Server 2025 runner starts the installed WPF app with the same DKR1 UTF-16LE binary transport packet as the native Explorer COM verb. The script uses only newly generated test fixtures under TEMP (regular file, Korean and Japanese filenames, and an empty folder). Windows UI Automation checks all four paths appear in the live WPF FilesGrid, confirms the native title and consumed packet removal, and checks no test file contents changed on open. It closes only its own test process and deletes only its generated fixtures.
 
-This is app-side handoff and GUI list evidence, not proof that the real Windows 11 shell menu invokes the COM command. Actual user-device menu invocation, Apply/Undo and light/dark visual appearance remain separate acceptance items.
+The same disposable Windows Server CI GUI smoke now also opens a one-file sequence preview, invokes the actual WPF Apply button, confirms the explicit Yes/No modal, checks the renamed fixture content, clicks Undo, and verifies that the original name and content return. It never changes user files and closes its own application process before deleting its unique TEMP fixture. The CI's desktop UI automation exercises the installed app, not Windows 11 Explorer COM menu invocation or visual rendering on a user's desktop; **Windows 11 interactive acceptance remains open**.
 
 
 ## 2026-11-04: titlebar still blank and repeat signing certificate
