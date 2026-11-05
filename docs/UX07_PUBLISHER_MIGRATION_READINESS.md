@@ -90,3 +90,18 @@ This is NOT an old installer/MSIX backup, an HKCU or Explorer registration
 backup, a successful live-data restoration, or an authorization for a publisher
 change. All previously listed public signer and Windows 11 migration/rollback
 gates remain open.
+
+## UX-07g — signed old installer + MSIX archive rehearsal
+
+See [UX07_SIGNED_ROLLBACK_ARCHIVE.md](UX07_SIGNED_ROLLBACK_ARCHIVE.md).
+A new standalone manual tool captures an already available **signed old Inno
+Setup EXE and matching signed MSIX** into a new local directory. It verifies
+Windows Authenticode status, an **externally pinned** old signer
+subject/thumbprint, matching package publisher and version, and file hashes.
+It can reverify the archive and copy exact verified bytes to another **new**
+directory without executing setup or registering an MSIX.
+
+The temporary CI upgrade signer is only valid in disposable CI VMs after
+explicit trust and is NOT a substitute for a public previous signing identity.
+The actual Win11 cross-publisher migration and rollback, app-data restoration,
+and public signing choice remain separate and not implemented.
