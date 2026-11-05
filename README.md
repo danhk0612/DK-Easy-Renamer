@@ -27,6 +27,18 @@ A focused Windows 11 batch file/folder renamer with precise ordering and GUI-dri
 - The Core engine is wired to the WPF rule editor, live preview, apply and undo UI. Nested directory plus its child in one batch is rejected for safety; see [engine design](docs/RENAME_ENGINE.md).
 - Physical Windows 11 integration acceptance is deferred to T04, not waived.
 
+## Test on Windows 11 from Git (test artifacts, not a public release)
+
+The current [Windows 11 test kit](docs/WINDOWS11_TEST_KIT.md) describes both an **APP-ONLY** installer with no test-certificate requirement, and a separate **development-signed Explorer** installer. From an updated main checkout with authenticated GitHub CLI:
+
+```powershell
+git checkout main
+git pull --ff-only
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t04\Get-Windows11TestBuild.ps1 -Mode AppOnly
+```
+
+Use `-Mode Explorer` only in a disposable Windows 11 VM after reviewing and explicitly trusting the matching public development certificate. The script verifies the exact Git commit, successful CI, artifact hash and signer (when signed), but **never installs or modifies certificate trust**. Test artifacts are not production installers; Windows 11 GUI Apply/Undo and Explorer acceptance are still tracked in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).
+
 ## Local development
 
 On Windows 11 with the .NET 10 SDK and PowerShell, generate the original app icon before building:
