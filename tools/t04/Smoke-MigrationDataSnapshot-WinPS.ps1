@@ -40,6 +40,9 @@ try {
     Write-Host 'PS5.1 PHASE 3: existing target must be rejected'
     $null = & $ps -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -Mode RestoreToNewDirectory -SnapshotDirectory $backup -RestoreDirectory $target 2>&1
     if ($LASTEXITCODE -eq 0) { throw 'Windows PowerShell overwrote an existing restore target.' }
+    # A deliberately rejected subprocess exits 1. Do not propagate the expected
+    # negative test's exit status as the enclosing CI step's result.
+    $global:LASTEXITCODE = 0
     Write-Host 'PASS: Windows PowerShell 5.1 backup, hash verification, new-folder restore and overwrite refusal.'
 }
 finally {
