@@ -124,6 +124,16 @@ function Read-VerifiedManifest([string]$directory) {
     }
     Assert-NoReparseAncestors $directory
     Assert-NoReparseAncestors $manifestFile
+    $dataDirectory = Join-Path $directory 'data'
+    if (-not (Test-Path -LiteralPath $dataDirectory -PathType Container)) {
+        throw 'Snapshot data directory is missing.'
+    }
+    $topLevel = @(Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop)
+    if ($topLevel.Count -ne 2 -or
+        @($topLevel | Where-Object { $_.Name -ceq 'SnapshotManifest.json' -and -not $_.PSIsContainer }).Count -ne 1 -or
+        @($topLevel | Where-Object { $_.Name -ceq 'data' -and $_.PSIsContainer }).Count -ne 1) {
+        throw 'Snapshot contains unexpected or missing top-level entries.'
+    }
     $manifest = Get-Content -LiteralPath $manifestFile -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($manifest.SchemaVersion -ne 1 -or $manifest.Kind -cne 'DK-Easy-Renamer-AppData' -or
         $null -eq $manifest.Files -or $null -eq $manifest.Directories) {
