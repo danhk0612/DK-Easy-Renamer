@@ -125,7 +125,7 @@ This is **not** an end-to-end public installer test: no publicly signed release 
 
 ## UX-07b (part 5): isolated signed-fixture execution regression
 
-`tools/ux07/Test-VerifiedUpdateExecution.ps1` is a CI-only test. It refuses to run outside a disposable Windows GitHub Actions runner. After .NET 10 is set up, it compiles a harmless console program that only records its received installer arguments and exits with a controllable code. On the runner alone, the test creates a one-day private **CI test CA** and a CA-issued temporary code-signing leaf, explicitly trusts the root in the CI runner's CurrentUser Root store, then signs that fixture executable. The private key/PFX is never exported or uploaded, and the test removes the temporary test trust when done.
+`tools/ux07/Test-VerifiedUpdateExecution.ps1` is a CI-only test. It refuses to run outside a disposable Windows GitHub Actions runner. After .NET 10 is set up, it compiles a harmless console program that only records its received installer arguments and exits with a controllable code. On the runner alone, the test creates a one-day private **CI test CA** and a CA-issued temporary code-signing leaf, explicitly trusts the root in the disposable CI runner's LocalMachine Root store (administrator-only, avoiding CurrentUser interactive consent), then signs that fixture executable. The private key/PFX is never exported or uploaded, and the test removes the temporary test trust when done.
 
 Without changing or bypassing the product's `Validate-PublicInstaller.ps1` or the unconfigured `PublicUpdatePolicy`, the test passes the fixture through the **real** `Invoke-VerifiedUpdate.ps1`:
 
