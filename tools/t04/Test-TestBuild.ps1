@@ -35,6 +35,25 @@ function Assert-ExpectedHash([string]$file) {
     return $actual
 }
 
+# A self-signed development certificate is deliberately NOT trusted by the
+# user's machine. WinVerifyTrust can report this as UnknownError instead of
+# NotTrusted. Accept that status only when the X509 chain has exactly one
+# problem: UntrustedRoot. Other chain/status errors are hard failures.
+function Test-OnlyUntrustedSelfSignedRoot($signer) {
+    if ($signer.Subject -ne $signer.Issuer) { return $false }
+    $chain = [Security.Cryptography.X509Certificates.X509Chain]::new()
+    try {
+        $chain.ChainPolicy.RevocationMode =
+            [Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
+        if ($chain.Build($signer)) { return $false }
+        $statuses = @($chain.ChainStatus)
+        return ($statuses.Count -eq 1 -and
+            $statuses[0].Status -eq
+                [Security.Cryptography.X509Certificates.X509ChainStatusFlags]::UntrustedRoot)
+    }
+    finally { $chain.Dispose() }
+}
+
 $setupHash = Assert-ExpectedHash $setup.FullName
 $certificate = $null
 $msix = $null
@@ -55,8 +74,13 @@ if ($Mode -eq 'Explorer') {
             $signature.SignerCertificate.Thumbprint -ne $certificate.Thumbprint) {
             throw "Signed payload certificate does not match the provided CER: $file"
         }
-        if ([string]$signature.Status -notin @('Valid','NotTrusted')) {
-            throw "Signed payload failed Authenticode inspection: $file (status $($signature.Status); detail $($signature.StatusMessage))"
+        $status = [string]$signature.Status
+        if ($status -notin @('Valid','NotTrusted')) {
+            if ($status -ne 'UnknownError' -or
+                -not (Test-OnlyUntrustedSelfSignedRoot $signature.SignerCertificate)) {
+                throw "Signed payload failed Authenticode inspection: $file (status $($signature.Status); detail $($signature.StatusMessage))"
+            }
+            Write-Warning "TEST-ONLY: $file uses a matching but untrusted self-signed root. The file hash and signer were checked; no trust was granted."
         }
     }
 }
