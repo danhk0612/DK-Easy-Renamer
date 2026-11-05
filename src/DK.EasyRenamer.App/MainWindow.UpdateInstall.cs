@@ -48,6 +48,21 @@ public partial class MainWindow
                 return;
             }
 
+            // Installing with the optional task unchecked removes an existing
+            // Explorer registration. Preserve the user's current choice.
+            int shellState = await RunShellScriptAsync("Query-ShellState.ps1");
+            if (shellState is not (0 or 1 or 2))
+            {
+                MessageBox.Show(this,
+                    "현재 탐색기 우클릭 메뉴 등록 상태를 확인할 수 없어 업데이트 설치를 중단합니다.\n" +
+                    "기존 프로그램과 메뉴 등록은 변경되지 않습니다.",
+                    "업데이트 설치 차단", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            string shellNotice = shellState == 0
+                ? "현재 탐색기 우클릭 메뉴 등록을 유지하도록 설치 옵션을 전달합니다."
+                : "현재 탐색기 우클릭 메뉴가 등록되지 않아 앱만 업데이트합니다.";
+
             string undoNotice = _undo is null
                 ? "앱을 종료하면 현재 미리보기 및 편집 중인 규칙이 유지되지 않을 수 있습니다."
                 : "현재 세션에 실행 취소 가능한 이름 변경 기록이 있습니다.\n" +
@@ -55,7 +70,8 @@ public partial class MainWindow
 
             var consent = MessageBox.Show(this,
                 $"설치본 {asset.FileName}의 SHA-256과 Windows 게시자 서명 검증이 완료됐습니다.\n\n" +
-                undoNotice + "\n\n" +
+                undoNotice + "\n" +
+                shellNotice + "\n\n" +
                 "지금 설치 프로그램을 실행하시겠습니까?\n" +
                 "설치 과정에서 현재 앱이 종료될 수 있습니다.",
                 "검증된 업데이트 설치", MessageBoxButton.YesNo, MessageBoxImage.Warning);
@@ -73,10 +89,14 @@ public partial class MainWindow
                 return;
             }
 
-            using Process? installer = Process.Start(new ProcessStartInfo(verifiedFile)
+            var setup = new ProcessStartInfo(verifiedFile)
             {
                 UseShellExecute = true
-            });
+            };
+            // Keep an existing Explorer registration enabled on upgrade,
+            // and keep an app-only installation app-only.
+            setup.ArgumentList.Add(shellState == 0 ? "/TASKS=shellmenu" : "/TASKS=");
+            using Process? installer = Process.Start(setup);
             if (installer is null)
                 throw new InvalidOperationException("설치 프로그램을 시작할 수 없습니다.");
 
