@@ -10,7 +10,7 @@ Selection order is authoritative for numbering. Natural sorting uses numeric gro
 Pure ordered rules: find/replace; add/remove text; numbering (start, step, width, position, separator); remove N chars; extract/remove slice; case; explicit extension; creation/modification date; regex with bounded evaluation. Rules operate on the stem by default. Extensions change only using an explicit extension rule. Rule enablement is per rule.
 
 ### Preview and safety
-The planner checks source existence, filename validity, Windows reserved names, duplicates and destination occupancy. The preview performs **no file mutation**. It also fingerprints each source (type, size, creation and modification time). Apply revalidates snapshots and targets before any write. No file overwrite.
+The planner checks source existence, filename validity, Windows reserved names (including `COM¹`–`COM³` and `LPT¹`–`LPT³`, with or without extensions), duplicates and destination occupancy. The preview performs **no file mutation**. It also fingerprints each source (type, size, creation and modification time). Apply revalidates snapshots and targets before any write. No file overwrite.
 
 ### Apply and undo
 Executor performs two-phase renames using unique temporary sibling paths: first vacate all sources, then move to final names. This supports swaps, chains and case-only renames. On failure, attempt a two-phase rollback and disclose any remaining paths; the filesystem cannot promise an atomic multi-file transaction.
