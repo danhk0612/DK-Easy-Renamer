@@ -93,7 +93,7 @@ try {
 
     Write-Host 'PHASE 1: empty state -> harmless no-op'
     & $script -InstallDir $install | Out-Null
-    if (Test-Path -LiteralPath $key -or $global:DKUnregisterRemoveCount -ne 0) {
+    if ((Test-Path -LiteralPath $key) -or $global:DKUnregisterRemoveCount -ne 0) {
         throw 'Empty-state unregister changed anything.'
     }
 
