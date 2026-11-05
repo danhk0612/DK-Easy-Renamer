@@ -35,6 +35,8 @@ $thumbprint = '0123456789ABCDEF0123456789ABCDEF01234567'  # 실제 기존 인증
 
 새 아카이브는 `RollbackManifest.json`, `payload/원래-설치파일.exe`, `payload/DKEasyRenamer.Shell.msix`로 구성됩니다. 매니페스트에는 원본 이름·버전·서명자 Subject/Thumbprint·파일별 길이·SHA-256이 저장됩니다. 서명된 EXE와 MSIX의 게시자 Subject·Thumbprint가 서로 같고, MSIX의 패키지 이름이 `DKEasyRenamer.Shell`이며 설치본의 버전과 일치해야 합니다.
 
+도구는 입력 파일·아카이브·새 대상 폴더의 **기존 경로 구성 요소 전체**에서 symlink/junction/reparse point를 거부합니다. 이는 파일 자체가 일반 파일이어도 상위 폴더가 링크인 경우를 포함합니다. Windows CI에서는 서명 설치 파일의 상위 폴더와 신규 복구 대상 상위 폴더를 각각 junction으로 만드는 부정 시나리오를 테스트합니다.
+
 도구는 목적지 기존 폴더를 덮어쓰지 않고, 새 폴더에만 복사합니다. 예상치 못한 파일, 일치하지 않는 해시·서명·버전, 대상 충돌은 거부합니다. 원본 EXE/MSIX는 변경하지 않습니다. 보관 파일에 별도 매니페스트 전자서명은 없지만, 매 실행마다 **외부에서 지정한 서명 지문**과 파일 서명을 다시 확인합니다.
 
 ## 보관과 실제 롤백의 차이
