@@ -16,20 +16,20 @@ New-Item -ItemType Directory -Path $source,$installDir -Force | Out-Null
 $guard = Join-Path $PSScriptRoot '..\..\installer\windows\Test-ShellPublisherTransition.ps1'
 $preflight = Join-Path $PSScriptRoot '..\..\installer\windows\Preflight-Shell.ps1'
 $register = Join-Path $PSScriptRoot '..\..\installer\windows\Register-Shell.ps1'
-$script:fakeRegistered = @()
-$script:removed = 0
-$script:signatureCalls = 0
+$global:DKPublisherTestPackages = @()
+$global:DKPublisherTestRemoved = 0
+$global:DKPublisherTestSignatureCalls = 0
 
 function Get-AppxPackage {
     [CmdletBinding()]
     param([string]$Name)
     if ($Name -cne 'DKEasyRenamer.Shell') { throw 'Wrong fake package name.' }
-    return $script:fakeRegistered
+    return $global:DKPublisherTestPackages
 }
 function Get-AuthenticodeSignature {
     [CmdletBinding()]
     param([string]$LiteralPath)
-    $script:signatureCalls++
+    $global:DKPublisherTestSignatureCalls++
     return [pscustomobject]@{
         Status = 'Valid'
         SignerCertificate = [pscustomobject]@{
@@ -42,7 +42,7 @@ function Get-AuthenticodeSignature {
 function Remove-AppxPackage {
     [CmdletBinding()]
     param([string]$Package)
-    $script:removed++
+    $global:DKPublisherTestRemoved++
     throw 'A conflicting registration was incorrectly removed.'
 }
 function New-FakePackage([string]$publisher,[string]$name,[string]$destination) {
@@ -64,25 +64,25 @@ try {
     New-FakePackage 'CN=Future Public Signer' 'DKEasyRenamer.Shell' $package
 
     Write-Host 'PHASE 1: fresh registration and same-publisher updates are allowed'
-    $script:fakeRegistered = @()
+    $global:DKPublisherTestPackages = @()
     & $guard -PackagePath $package | Out-Null
-    $script:fakeRegistered = @([pscustomobject]@{
+    $global:DKPublisherTestPackages = @([pscustomobject]@{
         Publisher = 'CN=Future Public Signer'
         PackageFullName = 'DKEasyRenamer.Shell_matching_fixture'
     })
     & $guard -PackagePath $package | Out-Null
 
     Write-Host 'PHASE 2: old development publisher cannot be silently replaced'
-    $script:fakeRegistered = @([pscustomobject]@{
+    $global:DKPublisherTestPackages = @([pscustomobject]@{
         Publisher = 'CN=DK Easy Renamer Development'
         PackageFullName = 'DKEasyRenamer.Shell_old_fixture'
     })
     Expect-Blocked { & $guard -PackagePath $package } 'mismatched registered publisher'
 
     Write-Host 'PHASE 3: preflight rejects mismatch before signature verification'
-    $script:signatureCalls = 0
+    $global:DKPublisherTestSignatureCalls = 0
     Expect-Blocked { & $preflight -PackagePath $package } 'publisher mismatch during preflight'
-    if ($script:signatureCalls -ne 0) {
+    if ($global:DKPublisherTestSignatureCalls -ne 0) {
         throw 'Preflight checked signature before blocking a publisher change.'
     }
 
@@ -92,17 +92,17 @@ try {
     }
     Copy-Item -LiteralPath $guard -Destination (Join-Path $installDir 'Test-ShellPublisherTransition.ps1')
     Expect-Blocked { & $register -InstallDir $installDir } 'destructive registration'
-    if ($script:removed -ne 0) {
+    if ($global:DKPublisherTestRemoved -ne 0) {
         throw 'Register-Shell called Remove-AppxPackage on a conflicting publisher.'
     }
 
     Write-Host 'PHASE 5: ambiguous or malformed package identities fail closed'
-    $script:fakeRegistered = @(
+    $global:DKPublisherTestPackages = @(
         [pscustomobject]@{ Publisher = 'CN=Future Public Signer' },
         [pscustomobject]@{ Publisher = 'CN=Future Public Signer' }
     )
     Expect-Blocked { & $guard -PackagePath $package } 'multiple packages'
-    $script:fakeRegistered = @()
+    $global:DKPublisherTestPackages = @()
     New-FakePackage 'CN=Future Public Signer' 'Some.Other.Package' $package
     Expect-Blocked { & $guard -PackagePath $package } 'wrong MSIX name'
 
@@ -110,4 +110,5 @@ try {
 }
 finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Variable -Name DKPublisherTestPackages,DKPublisherTestRemoved,DKPublisherTestSignatureCalls -Scope Global -ErrorAction SilentlyContinue
 }
