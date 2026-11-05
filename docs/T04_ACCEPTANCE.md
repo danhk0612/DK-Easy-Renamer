@@ -5,21 +5,14 @@ The user has verified Windows 11 app installation, Explorer context-menu visibil
 ## Safety
 Use a dedicated Windows 11 test account or disposable VM. Never perform test renames on personal files or production network shares. T04 test scripts do not touch existing user files.
 
-## Test-only installer preparation
-1. Download the artifact **t05-DEV-SIGNED-TEST-ONLY-MANUAL-TRUST** from the latest passing Windows CI of this repository. It includes DK-Easy-Renamer-0.1.1-x64-SIGNED-PROBE.exe, a public test certificate DKEasyRenamer-TEST-ONLY.cer, and SHA256SUMS.txt.
-2. Check the SHA-256 hash, verify the file origin and compare the thumbprints:
+## Test-only installer preparation (current)
 
-    Get-AuthenticodeSignature .\DK-Easy-Renamer-0.1.0-x64-SIGNED-PROBE.exe | Format-List Status,SignerCertificate
-    Get-PfxCertificate .\DKEasyRenamer-TEST-ONLY.cer | Format-List Subject,Thumbprint,NotAfter
+For new tests, use the **[Git checkout and Windows 11 test kit](WINDOWS11_TEST_KIT.md)** instead of the historical version-specific artifact links. The kit downloads a successful main CI artifact matching the checked-out commit, checks the EXE's SHA-256, and for Explorer mode also checks the matching public development certificate and signed MSIX.
 
-3. Only on an isolated Windows test machine, after checking the signer matches the certificate, explicitly trust the *public test certificate* in the Local Machine Trusted People store (elevated PowerShell required):
-
-    Import-Certificate -FilePath .\DKEasyRenamer-TEST-ONLY.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
-
-4. Run the signed probe installer. Do not use UNSIGNED-DO-NOT-INSTALL. Record SmartScreen/trust prompts without weakening global security.
-5. Record the Windows build:
-
-    Get-ComputerInfo | Select-Object WindowsProductName,WindowsVersion,OsBuildNumber
+- **APP-ONLY**: installable unsigned GUI-only test setup; no Explorer registration or test-certificate import.
+- **Explorer**: test-only signed installer requiring explicit approval and trust of the *matching* public CER in the disposable VM's LocalMachine TrustedPeople certificate store.
+- Neither mode auto-runs an installer, imports a certificate or approves public release. Use only the isolated fixture files below.
+- Record the local Git SHA, selected GitHub Actions run ID, certificate thumbprint and Windows build for acceptance.
 
 ## Generate disposable test files
 From a checkout of the repository:

@@ -11,6 +11,10 @@ Updated 2026-11-05: T00–T03 and T05 are merged. T04 implementation was merged;
 | T05 installer | Merged; Windows 11 signed test install confirmed; Windows Server 2025 install/uninstall CI passed; Windows 11 upgrade/uninstall unverified |
 | T04 integrated acceptance | Code tested on CI and Windows Server 2025; Windows 11 interactive UI acceptance pending in issue #7 |
 
+## Current Windows 11 test handoff (2026-11-05)
+
+The dedicated [test kit](WINDOWS11_TEST_KIT.md) uses a main SHA-matched CI run to download either the unsigned APP-ONLY **installable test** package or the signed Explorer TEST-ONLY probe with a matching public development certificate. Download, checksums and signer checks do not install anything or modify trust. These test artifacts have a 14-day retention window. CI verification of the test-kit scripts is separate from issue #7's physical Windows 11 GUI Apply/Undo, menu invocation and uninstall acceptance.
+
 ## Reusable test certificate
 - tools/t05/New-StableDevCertificate.ps1 creates a one-time PRIVATE PFX OUTSIDE the repo.
 - workflow_dispatch with stable_dev_signing=true runs a separate job in the protected dev-signing environment, with two secret inputs and a pinned public thumbprint variable.
