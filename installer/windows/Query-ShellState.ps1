@@ -28,6 +28,12 @@ try {
     }
     if ($registered.Count -eq 1) {
         if (-not $recordedExe) { exit 3 }
+        $package = Join-Path $resolved 'DKEasyRenamer.Shell.msix'
+        $publisherCheck = Join-Path $resolved 'Test-ShellPublisherTransition.ps1'
+        if (-not (Test-Path -LiteralPath $package -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $publisherCheck -PathType Leaf)) { exit 3 }
+        try { & $publisherCheck -PackagePath $package | Out-Null }
+        catch { exit 3 }
         exit 0
     }
 
