@@ -109,6 +109,9 @@ jobs:
       - name: Verify application data snapshot and restore to disposable new directory
         shell: pwsh
         run: ./tools/t04/Smoke-MigrationDataSnapshot.ps1
+      - name: Verify app-data snapshot also works in Windows PowerShell 5.1
+        shell: pwsh
+        run: ./tools/t04/Smoke-MigrationDataSnapshot-WinPS.ps1
       - name: Verify signed-fixture update handoff and cleanup in disposable CI
         shell: pwsh
         timeout-minutes: 6
