@@ -53,8 +53,8 @@ function Assert-Args([string]$expected) {
 }
 New-Item -ItemType Directory -Path $work,$project,$published -Force | Out-Null
 try {
-    & dotnet new console -n HandoffProbe -f net10.0 --no-restore -o $project
-    if ($LASTEXITCODE -ne 0) { throw 'Failed to create disposable console fixture.' }
+    Write-Host 'BUILD fixture: .NET Framework C# compiler (no NuGet/runtime downloads)'
+    $source = Join-Path $project 'Program.cs'
     @'
 using System;
 using System.IO;
@@ -66,11 +66,14 @@ internal static class Program {
         return Environment.GetEnvironmentVariable("DK_UX07_CI_FAIL") == "1" ? 17 : 0;
     }
 }
-'@ | Set-Content -LiteralPath (Join-Path $project 'Program.cs') -Encoding utf8
-    Write-Host 'BUILD fixture: framework-dependent single-file .NET 10 (runtime is already installed by CI)'
-    & dotnet publish (Join-Path $project 'HandoffProbe.csproj') -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o $published
-    if ($LASTEXITCODE -ne 0) { throw 'Could not build harmless fixture.' }
+'@ | Set-Content -LiteralPath $source -Encoding utf8
+    $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+    if (-not (Test-Path -LiteralPath $csc)) { throw 'Windows .NET Framework C# compiler is missing.' }
     $probe = Join-Path $published 'HandoffProbe.exe'
+    & $csc /nologo /target:exe /optimize+ ("/out:" + $probe) $source
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $probe)) {
+        throw 'Could not build a harmless native-Windows-compatible fixture.'
+    }
 
     Write-Host 'CERT: create disposable CI root and code-signing leaf'
     $rootCert = New-SelfSignedCertificate -Type Custom -Subject ('CN=DK-UX07-CI-Root-' + $id) -CertStoreLocation 'Cert:\CurrentUser\My' -KeyUsage CertSign,CRLSign -TextExtension @('2.5.29.19={critical}{text}ca=TRUE') -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -NotAfter (Get-Date).AddDays(1)
