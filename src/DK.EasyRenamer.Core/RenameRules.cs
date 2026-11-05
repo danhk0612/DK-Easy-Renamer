@@ -56,9 +56,10 @@ public sealed record SequenceRule(long Start = 1, long Step = 1, int Width = 3,
     {
         if (Width is < 1 or > 16 || Step <= 0) throw new ArgumentOutOfRangeException(nameof(Width));
         long number = checked(Start + context.Index * Step);
+        string numberText = number.ToString(CultureInfo.InvariantCulture);
         string digits = number >= 0
-            ? number.ToString(CultureInfo.InvariantCulture).PadLeft(Width, '0')
-            : "-" + (-number).ToString(CultureInfo.InvariantCulture).PadLeft(Width, '0');
+            ? numberText.PadLeft(Width, '0')
+            : "-" + numberText[1..].PadLeft(Width, '0');
         return name with { Stem = ReplaceStem ? digits : AtStart ? digits + Separator + name.Stem : name.Stem + Separator + digits };
     }
 }
