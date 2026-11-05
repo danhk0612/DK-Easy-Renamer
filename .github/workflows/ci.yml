@@ -97,6 +97,9 @@ jobs:
           } finally {
             Remove-Item -LiteralPath $fixture -Force -ErrorAction SilentlyContinue
           }
+      - name: Verify signed-fixture update handoff and cleanup in disposable CI
+        shell: pwsh
+        run: ./tools/ux07/Test-VerifiedUpdateExecution.ps1
       - name: Reject unsafe updater staging paths without running an installer
         shell: pwsh
         run: ./tools/ux07/Test-UpdateHandoff.ps1
