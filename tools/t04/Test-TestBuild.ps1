@@ -56,7 +56,7 @@ if ($Mode -eq 'Explorer') {
             throw "Signed payload certificate does not match the provided CER: $file"
         }
         if ([string]$signature.Status -notin @('Valid','NotTrusted')) {
-            throw "Signed payload failed Authenticode inspection: $file (status $($signature.Status))"
+            throw "Signed payload failed Authenticode inspection: $file (status $($signature.Status); detail $($signature.StatusMessage))"
         }
     }
 }
