@@ -151,6 +151,39 @@ public sealed class RenameEngineTests
     }
 
     [Fact]
+    public void NameAndNaturalSortDoNotRequireFilesToStillExist()
+    {
+        using var f = new WorkFolder();
+        string ten = f.File("photo10.txt");
+        string two = f.File("photo2.txt");
+        string one = f.File("photo1.txt");
+        System.IO.File.Delete(two);
+        var selection = new[] { new RenameSelection(ten), new RenameSelection(two), new RenameSelection(one) };
+
+        var natural = RenameSelectionSorter.Sort(selection, RenameSortField.NaturalName);
+        Assert.Equal([one, two, ten], natural.Select(x => x.Path));
+        var name = RenameSelectionSorter.Sort(selection, RenameSortField.Name);
+        Assert.Equal([one, ten, two], name.Select(x => x.Path));
+        var reverse = RenameSelectionSorter.Sort(selection, RenameSortField.NaturalName, descending: true);
+        Assert.Equal([ten, two, one], reverse.Select(x => x.Path));
+
+        var preview = RenamePlanner.Build(natural, []);
+        Assert.False(preview.IsValid);
+        Assert.Contains(preview.Errors, e => e.Contains("missing or inaccessible", StringComparison.OrdinalIgnoreCase));
+        Assert.False(RenameExecutor.Apply(preview).Succeeded);
+    }
+
+    [Fact]
+    public void MetadataSortStillRequiresAccessibleSelectedFiles()
+    {
+        using var f = new WorkFolder();
+        string missing = f.File("removed.txt");
+        System.IO.File.Delete(missing);
+        Assert.Throws<FileNotFoundException>(() => RenameSelectionSorter.Sort(
+            [new RenameSelection(missing)], RenameSortField.Size));
+    }
+
+    [Fact]
     public void DescendingSizeSortKeepsUserOrderForEqualFileSizes()
     {
         using var f = new WorkFolder();
