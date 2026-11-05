@@ -67,10 +67,12 @@ internal static class Program {
     }
 }
 '@ | Set-Content -LiteralPath (Join-Path $project 'Program.cs') -Encoding utf8
-    & dotnet publish (Join-Path $project 'HandoffProbe.csproj') -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o $published
+    Write-Host 'BUILD fixture: framework-dependent single-file .NET 10 (runtime is already installed by CI)'
+    & dotnet publish (Join-Path $project 'HandoffProbe.csproj') -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o $published
     if ($LASTEXITCODE -ne 0) { throw 'Could not build harmless fixture.' }
     $probe = Join-Path $published 'HandoffProbe.exe'
 
+    Write-Host 'CERT: create disposable CI root and code-signing leaf'
     $rootCert = New-SelfSignedCertificate -Type Custom -Subject ('CN=DK-UX07-CI-Root-' + $id) -CertStoreLocation 'Cert:\CurrentUser\My' -KeyUsage CertSign,CRLSign -TextExtension @('2.5.29.19={critical}{text}ca=TRUE') -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -NotAfter (Get-Date).AddDays(1)
     $leaf = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=DK Easy Renamer CI Only Test Publisher' -Signer $rootCert -CertStoreLocation 'Cert:\CurrentUser\My' -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -NotAfter (Get-Date).AddDays(1)
     $certFile = Join-Path $work 'public-root.cer'
