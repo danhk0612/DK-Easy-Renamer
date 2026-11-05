@@ -176,7 +176,7 @@ public partial class MainWindow : Window
         foreach (string path in paths)
         {
             string full;
-            try { full = Path.GetFullPath(path); }
+            try { full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)); }
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
             {
                 continue;

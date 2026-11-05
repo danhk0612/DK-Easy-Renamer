@@ -49,6 +49,8 @@ This creates a unique directory under %TEMP% with numeric filename samples, Unic
 | 14 | Restart Explorer and invoke again | Menu and app still function |
 | 15 | Uninstall | Shell registration and app removed, test fixture files left intact |
 
+Automated Windows Server GUI selection smoke also checks that the same disposable folder selected with and without a trailing separator appears only once in the WPF grid. This does not replace Windows 11 Explorer invocation acceptance.
+
 For a dedicated test-only UNC share, test reading selected paths and, if safe, renaming copies of fixtures. Do not operate on real shares.
 
 ## Read-only registration checks
