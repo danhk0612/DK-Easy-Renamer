@@ -94,7 +94,27 @@ try {
     Copy-Item -LiteralPath $OldSetup -Destination $fakeName
     Assert-Rejected { Call-Archive 'Capture' (Join-Path $work 'app-only') $fakeName $OldMsix '' } 'app-only filename'
 
-    Write-Host 'PASS: preserved signed installer/MSIX, exact hashes, external signer pin, safe new-folder staging and tamper refusal.'
+    Write-Host 'PHASE 7: a junction in a source or destination ancestor is rejected'
+    $realParent = Join-Path $work 'real-signed-source'
+    $linkedParent = Join-Path $work 'linked-signed-source'
+    New-Item -ItemType Directory -Path $realParent | Out-Null
+    $sourceCopy = Join-Path $realParent ([IO.Path]::GetFileName($OldSetup))
+    Copy-Item -LiteralPath $OldSetup -Destination $sourceCopy
+    New-Item -ItemType Junction -Path $linkedParent -Target $realParent | Out-Null
+    $linkedSetup = Join-Path $linkedParent ([IO.Path]::GetFileName($OldSetup))
+    $linkedArchive = Join-Path $work 'linked-source-archive'
+    Assert-Rejected { Call-Archive 'Capture' $linkedArchive $linkedSetup $OldMsix '' } 'signed source below a junction'
+    if (Test-Path -LiteralPath $linkedArchive) { throw 'Linked source unexpectedly created an archive.' }
+
+    $realDest = Join-Path $work 'real-stage-parent'
+    $linkedDest = Join-Path $work 'linked-stage-parent'
+    New-Item -ItemType Directory -Path $realDest | Out-Null
+    New-Item -ItemType Junction -Path $linkedDest -Target $realDest | Out-Null
+    $linkedStage = Join-Path $linkedDest 'stage'
+    Assert-Rejected { Call-Archive 'StageToNewDirectory' $archive '' '' $linkedStage } 'stage destination below a junction'
+    if (Test-Path -LiteralPath (Join-Path $realDest 'stage')) { throw 'Linked stage unexpectedly created a directory.' }
+
+    Write-Host 'PASS: preserved signed installer/MSIX, exact hashes, external signer pin, safe new-folder staging, ancestor junction refusal and tamper refusal.'
     Write-Host 'TEST ONLY. This does not execute rollback, approve a public signer, or modify a real user installation.'
 }
 finally {
