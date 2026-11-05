@@ -280,6 +280,37 @@ public sealed class RenameEngineTests
     }
 
     [Fact]
+    public void SequenceRuleHandlesMinimumLongWithoutDoubleMinusOrOverflow()
+    {
+        var context = new RenameRuleContext(0, false, default, default);
+        var original = new RenameName("photo", ".png");
+        var rule = new SequenceRule(Start: long.MinValue, Width: 3, ReplaceStem: true);
+        Assert.Equal("-9223372036854775808.png", rule.Apply(original, context).FullName);
+
+        using var folder = new WorkFolder();
+        string source = folder.File("photo.png", "unchanged");
+        var plan = RenamePlanner.Build([new RenameSelection(source)], [rule]);
+        Assert.True(plan.IsValid, string.Join("; ", plan.Errors));
+        Assert.Equal("-9223372036854775808.png", Path.GetFileName(plan.Items[0].TargetPath));
+        var apply = RenameExecutor.Apply(plan);
+        Assert.True(apply.Succeeded, string.Join("; ", apply.Errors));
+        Assert.Equal("unchanged", System.IO.File.ReadAllText(plan.Items[0].TargetPath));
+        Assert.True(RenameExecutor.Undo(apply.Undo!).Succeeded);
+        Assert.Equal("unchanged", System.IO.File.ReadAllText(source));
+    }
+
+    [Theory]
+    [InlineData(-7L, "-007")]
+    [InlineData(0L, "000")]
+    [InlineData(7L, "007")]
+    public void SequenceRuleRetainsExistingPaddingBehavior(long number, string expected)
+    {
+        var rule = new SequenceRule(Start: number, Width: 3, ReplaceStem: true);
+        Assert.Equal(expected + ".txt", rule.Apply(new RenameName("name", ".txt"),
+            new RenameRuleContext(0, false, default, default)).FullName);
+    }
+
+    [Fact]
     public void NumberPlacementDefaultAndSuffixRemainUnchanged()
     {
         var context = new RenameRuleContext(0, false, default, default);
