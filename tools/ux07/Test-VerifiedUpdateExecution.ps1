@@ -80,7 +80,9 @@ internal static class Program {
     $leaf = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=DK Easy Renamer CI Only Test Publisher' -Signer $rootCert -CertStoreLocation 'Cert:\CurrentUser\My' -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -NotAfter (Get-Date).AddDays(1)
     $certFile = Join-Path $work 'public-root.cer'
     Export-Certificate -Cert $rootCert -FilePath $certFile | Out-Null
-    Import-Certificate -FilePath $certFile -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
+    # CurrentUser\\Root may invoke a noninteractive CryptoAPI consent dialog.
+    # Hosted Windows CI runs elevated; trust only on this disposable runner.
+    Import-Certificate -FilePath $certFile -CertStoreLocation 'Cert:\LocalMachine\Root' -ErrorAction Stop | Out-Null
     $trusted = $true
     $sdk = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Windows Kits\10\bin'
     $signTool = Get-ChildItem -LiteralPath $sdk -Directory | Sort-Object Name -Descending | ForEach-Object { Join-Path $_.FullName 'x64\signtool.exe' } | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
@@ -147,7 +149,7 @@ finally {
         if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
     }
     if ($trusted -and $null -ne $rootCert) {
-        Remove-Item -LiteralPath ('Cert:\CurrentUser\Root\' + $rootCert.Thumbprint) -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath ('Cert:\LocalMachine\Root\' + $rootCert.Thumbprint) -Force -ErrorAction SilentlyContinue
     }
     if ($null -ne $leaf) { Remove-Item -LiteralPath ('Cert:\CurrentUser\My\' + $leaf.Thumbprint) -Force -ErrorAction SilentlyContinue }
     if ($null -ne $rootCert) { Remove-Item -LiteralPath ('Cert:\CurrentUser\My\' + $rootCert.Thumbprint) -Force -ErrorAction SilentlyContinue }
