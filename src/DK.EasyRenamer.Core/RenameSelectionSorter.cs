@@ -12,7 +12,10 @@ public static class RenameSelectionSorter
         var indexed = items.Select((item, index) =>
         {
             string path = Path.GetFullPath(item.Path);
-            FileFingerprint fp = FileFingerprint.Capture(path);
+            // Name sorting only needs the path text. A selection may have been
+            // removed since it was added; preview validation handles that.
+            FileFingerprint? fp = field is RenameSortField.Name or RenameSortField.NaturalName
+                ? null : FileFingerprint.Capture(path);
             // Directory selections may end with a separator. Sort by the actual
             // folder name, while preserving the original selection path.
             return (Item: item, Name: Path.GetFileName(Path.TrimEndingDirectorySeparator(path)), State: fp, OriginalIndex: index);
@@ -30,14 +33,14 @@ public static class RenameSelectionSorter
         var ordered = field switch
         {
             RenameSortField.CreatedUtc => descending
-                ? indexed.OrderByDescending(x => x.State.CreatedUtc)
-                : indexed.OrderBy(x => x.State.CreatedUtc),
+                ? indexed.OrderByDescending(x => x.State!.CreatedUtc)
+                : indexed.OrderBy(x => x.State!.CreatedUtc),
             RenameSortField.ModifiedUtc => descending
-                ? indexed.OrderByDescending(x => x.State.LastWriteUtc)
-                : indexed.OrderBy(x => x.State.LastWriteUtc),
+                ? indexed.OrderByDescending(x => x.State!.LastWriteUtc)
+                : indexed.OrderBy(x => x.State!.LastWriteUtc),
             RenameSortField.Size => descending
-                ? indexed.OrderByDescending(x => x.State.Length)
-                : indexed.OrderBy(x => x.State.Length),
+                ? indexed.OrderByDescending(x => x.State!.Length)
+                : indexed.OrderBy(x => x.State!.Length),
             _ => descending
                 ? indexed.OrderByDescending(x => x.Name, comparer)
                 : indexed.OrderBy(x => x.Name, comparer)
