@@ -26,11 +26,11 @@ public static class DkCiAsyncUiInvoke
     public static Thread Start(AutomationElement element)
     {
         Error = null;
-        Thread thread = new Thread(() =>
+        Thread thread = new Thread(new ThreadStart(() =>
         {
             try { ((InvokePattern)element.GetCurrentPattern(InvokePattern.Pattern)).Invoke(); }
             catch (Exception ex) { Error = ex.ToString(); }
-        });
+        }));
         thread.IsBackground = true;
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
