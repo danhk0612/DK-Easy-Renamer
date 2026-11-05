@@ -97,6 +97,9 @@ jobs:
           } finally {
             Remove-Item -LiteralPath $fixture -Force -ErrorAction SilentlyContinue
           }
+      - name: Reject unsafe updater staging paths without running an installer
+        shell: pwsh
+        run: ./tools/ux07/Test-UpdateHandoff.ps1
       - name: Build native x64 Explorer COM DLL
         shell: pwsh
         run: |
