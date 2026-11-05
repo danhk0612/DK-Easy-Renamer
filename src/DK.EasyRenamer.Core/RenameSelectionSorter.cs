@@ -13,7 +13,9 @@ public static class RenameSelectionSorter
         {
             string path = Path.GetFullPath(item.Path);
             FileFingerprint fp = FileFingerprint.Capture(path);
-            return (Item: item, Name: Path.GetFileName(path), State: fp, OriginalIndex: index);
+            // Directory selections may end with a separator. Sort by the actual
+            // folder name, while preserving the original selection path.
+            return (Item: item, Name: Path.GetFileName(Path.TrimEndingDirectorySeparator(path)), State: fp, OriginalIndex: index);
         });
 
         IComparer<string> comparer = field switch
