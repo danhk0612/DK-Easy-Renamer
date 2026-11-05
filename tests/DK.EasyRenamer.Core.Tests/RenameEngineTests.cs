@@ -113,6 +113,44 @@ public sealed class RenameEngineTests
     }
 
     [Fact]
+    public void NaturalSortUsesDirectoryNameWithOrWithoutTrailingSeparator()
+    {
+        using var f = new WorkFolder();
+        string two = Path.Combine(f.Root, "folder2");
+        string ten = Path.Combine(f.Root, "folder10");
+        string one = Path.Combine(f.Root, "folder1");
+        Directory.CreateDirectory(two);
+        Directory.CreateDirectory(ten);
+        Directory.CreateDirectory(one);
+
+        var selection = new[]
+        {
+            new RenameSelection(ten + Path.DirectorySeparatorChar),
+            new RenameSelection(two),
+            new RenameSelection(one + Path.DirectorySeparatorChar)
+        };
+        var sorted = RenameSelectionSorter.Sort(selection, RenameSortField.NaturalName);
+        Assert.Equal([selection[2], selection[1], selection[0]], sorted);
+
+        var descending = RenameSelectionSorter.Sort(selection, RenameSortField.NaturalName, descending: true);
+        Assert.Equal([selection[0], selection[1], selection[2]], descending);
+    }
+
+    [Fact]
+    public void NameSortKeepsSelectedDirectoryPathUnmodified()
+    {
+        using var f = new WorkFolder();
+        string alpha = Path.Combine(f.Root, "Alpha");
+        string beta = Path.Combine(f.Root, "Beta");
+        Directory.CreateDirectory(alpha);
+        Directory.CreateDirectory(beta);
+        string alphaWithSeparator = alpha + Path.DirectorySeparatorChar;
+        var sorted = RenameSelectionSorter.Sort(
+            [new RenameSelection(beta), new RenameSelection(alphaWithSeparator)], RenameSortField.Name);
+        Assert.Equal([alphaWithSeparator, beta], sorted.Select(x => x.Path));
+    }
+
+    [Fact]
     public void DescendingSizeSortKeepsUserOrderForEqualFileSizes()
     {
         using var f = new WorkFolder();
