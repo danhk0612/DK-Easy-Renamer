@@ -23,6 +23,19 @@ function Is-Under([string]$path,[string]$root) {
     return $path.StartsWith($root + '\',[StringComparison]::OrdinalIgnoreCase) -or
         [string]::Equals($path,$root,[StringComparison]::OrdinalIgnoreCase)
 }
+function Assert-NoReparseAncestors([string]$path) {
+    # A regular file or directory beneath a junction is still an unsafe path.
+    $current = [IO.Path]::GetFullPath($path)
+    while ($true) {
+        if (((Get-Item -LiteralPath $current -Force -ErrorAction Stop).Attributes -band
+             [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Reparse point found in path ancestor: $current"
+        }
+        $parent = [IO.Path]::GetDirectoryName($current)
+        if ([string]::IsNullOrEmpty($parent)) { break }
+        $current = $parent
+    }
+}
 function Assert-NoReparse([string]$directory) {
     if (((Get-Item -LiteralPath $directory -Force).Attributes -band
          [IO.FileAttributes]::ReparsePoint) -ne 0) {
@@ -63,6 +76,7 @@ function Check-Tree([string]$root,[object[]]$expectedDirs,[object[]]$expectedFil
     if (-not (Test-Path -LiteralPath $root -PathType Container)) {
         throw 'Snapshot data root is missing.'
     }
+    Assert-NoReparseAncestors $root
     Assert-NoReparse $root
     $seenFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     $seenDirs = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -108,6 +122,8 @@ function Read-VerifiedManifest([string]$directory) {
     if (-not (Test-Path -LiteralPath $manifestFile -PathType Leaf)) {
         throw 'Snapshot manifest is missing.'
     }
+    Assert-NoReparseAncestors $directory
+    Assert-NoReparseAncestors $manifestFile
     $manifest = Get-Content -LiteralPath $manifestFile -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($manifest.SchemaVersion -ne 1 -or $manifest.Kind -cne 'DK-Easy-Renamer-AppData' -or
         $null -eq $manifest.Files -or $null -eq $manifest.Directories) {
@@ -136,6 +152,8 @@ if ($Mode -eq 'Backup') {
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
         throw 'Snapshot destination parent does not exist.'
     }
+    Assert-NoReparseAncestors $source
+    Assert-NoReparseAncestors $parent
     Assert-NoReparse $source
     $sourceDirs = @(Get-ChildItem -LiteralPath $source -Directory -Force -Recurse | Sort-Object FullName)
     $sourceFiles = @(Get-ChildItem -LiteralPath $source -File -Force -Recurse | Sort-Object FullName)
@@ -198,6 +216,7 @@ else {
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
         throw 'Restore target parent does not exist.'
     }
+    Assert-NoReparseAncestors $parent
     $m = Read-VerifiedManifest $snapshot
     New-Item -ItemType Directory -Path $target | Out-Null
     foreach ($relative in $m.Directories) {
