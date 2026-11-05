@@ -187,12 +187,13 @@ jobs:
         run: |
           ./tools/t05/Build-Distribution.ps1 -AppOnly
           ./tools/t05/Validate-Distribution.ps1 -ExpectedMode AppOnly
+          ./tools/t04/Test-TestBuild.ps1 -BundleDirectory artifacts/t05/installer -Mode AppOnly
       - name: Upload unsigned standalone-only test setup (NOT a public release)
         uses: actions/upload-artifact@v4
         with:
           name: t05-UNSIGNED-APP-ONLY-TEST-ONLY
           path: artifacts/t05/installer/
-          retention-days: 7
+          retention-days: 14
       - name: Build isolated developer-signed setup (NOT a public release)
         shell: pwsh
         run: |
@@ -244,6 +245,9 @@ jobs:
           finally {
             Remove-Item -LiteralPath ("Cert:\CurrentUser\My\" + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue
           }
+      - name: Verify test-only signed download bundle matches public certificate and SHA256
+        shell: pwsh
+        run: ./tools/t04/Test-TestBuild.ps1 -BundleDirectory artifacts/t05 -Mode Explorer
       - name: Upload developer signed setup and public test certificate (TRUST MANUALLY)
         uses: actions/upload-artifact@v4
         with:
@@ -251,7 +255,7 @@ jobs:
           path: |
             artifacts/t05/installer/
             artifacts/t05/DKEasyRenamer.Shell.msix
-          retention-days: 7
+          retention-days: 14
 
       - name: Upload matching certificate and signed upgrade fixture pair (TEST ONLY)
         uses: actions/upload-artifact@v4
