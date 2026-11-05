@@ -7,7 +7,7 @@ The Core library is a deterministic, WPF-independent engine; it does not integra
 Selection order is authoritative for numbering. Natural sorting uses numeric groups, with other supported keys: name, creation date, modification date, and size. Excluded entries remain visible but do not consume sequence numbers. Caller-driven manual reorder is represented by the input list order.
 
 ### Rules
-Pure ordered rules: find/replace; add/remove text; numbering (start, step, width, position, separator); remove N chars; extract/remove slice; case; explicit extension; creation/modification date; regex with bounded evaluation. Rules operate on the stem by default. Extensions change only using an explicit extension rule. Rule enablement is per rule.
+Pure ordered rules: find/replace; add/remove text; numbering (start, step, width, position, separator, including the full signed 64-bit start range without negative-value overflow); remove N chars; extract/remove slice; case; explicit extension; creation/modification date; regex with bounded evaluation. Rules operate on the stem by default. Extensions change only using an explicit extension rule. Rule enablement is per rule.
 
 ### Preview and safety
 The planner checks source existence, filename validity, Windows reserved names (including `COM¹`–`COM³` and `LPT¹`–`LPT³`, with or without extensions), duplicates and destination occupancy. The preview performs **no file mutation**. It also fingerprints each source (type, size, creation and modification time). Apply revalidates snapshots and targets before any write. No file overwrite.
