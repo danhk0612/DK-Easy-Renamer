@@ -59,19 +59,42 @@ public partial class MainWindow
             else if (notes.Length > 600)
                 notes = notes[..600].TrimEnd() + "\n… (전체 내용은 GitHub 릴리스 페이지에서 확인)";
 
-            var choice = MessageBox.Show(this,
+            string announcement =
                 $"새 정식 버전 {release.Version.ToString(3)}이 공개됐습니다.\n현재 버전: {current.ToString(3)}\n\n" +
-                $"변경 내용:\n{notes}\n\n" +
-                "공식 GitHub 릴리스 페이지를 브라우저로 여시겠습니까?\n" +
-                "설치 파일은 자동 다운로드하거나 실행하지 않습니다.",
+                $"변경 내용:\n{notes}\n\n";
+
+            // No public publisher has been approved. Development/self-signed
+            // test installers are not eligible for in-app execution.
+            bool approved = PublicUpdatePolicy.TryGetApprovedPublisher(
+                out PublicUpdatePublisher? publisher);
+            OfficialInstallerAsset? asset = approved
+                ? PublicUpdatePolicy.FindNewerInstaller(json, current)
+                : null;
+            if (publisher is not null && asset is not null)
+            {
+                var installChoice = MessageBox.Show(this,
+                    announcement +
+                    $"공식 설치 파일: {asset.FileName}\n\n" +
+                    "예: 파일을 다운로드하고 해시·Windows 서명을 검증한 후 설치 여부를 다시 확인합니다.\n" +
+                    "아니요: 공식 GitHub 릴리스 페이지를 엽니다.\n" +
+                    "취소: 아무 작업도 하지 않습니다.",
+                    "정식 업데이트 확인", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+
+                if (installChoice == MessageBoxResult.Yes)
+                    await DownloadVerifyAndOfferInstallAsync(asset, publisher);
+                else if (installChoice == MessageBoxResult.No)
+                    OpenOfficialReleasePage(release);
+                return;
+            }
+
+            string reason = approved
+                ? "공식 설치 파일의 이름·크기·해시 정보를 검증할 수 없어 앱 내 설치를 제공하지 않습니다."
+                : "공개 배포용 코드 서명자가 아직 확정되지 않아 앱 내 설치 기능이 비활성화되어 있습니다.";
+            var choice = MessageBox.Show(this,
+                announcement + reason + "\n\n공식 GitHub 릴리스 페이지를 브라우저로 여시겠습니까?",
                 "새 버전 확인", MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (choice == MessageBoxResult.Yes)
-            {
-                Process.Start(new ProcessStartInfo(release.ReleasePage.AbsoluteUri)
-                {
-                    UseShellExecute = true
-                });
-            }
+                OpenOfficialReleasePage(release);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
@@ -82,5 +105,12 @@ public partial class MainWindow
         {
             CheckUpdatesButton.IsEnabled = true;
         }
+    }
+    private static void OpenOfficialReleasePage(StableRelease release)
+    {
+        Process.Start(new ProcessStartInfo(release.ReleasePage.AbsoluteUri)
+        {
+            UseShellExecute = true
+        });
     }
 }
