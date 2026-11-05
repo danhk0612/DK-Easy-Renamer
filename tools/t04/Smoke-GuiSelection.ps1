@@ -212,22 +212,44 @@ try {
     $invokeThread = [DkCiAsyncUiInvoke]::Start($applyButton)
     $modal = $null
     $desktop = [System.Windows.Automation.AutomationElement]::RootElement
-    $modalCondition = [System.Windows.Automation.PropertyCondition]::new(
-        [System.Windows.Automation.AutomationElement]::NameProperty,
-        'DK Easy Renamer · 이름 변경')
+    $ownerCondition = [System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $app.Process.Id)
     for ($attempt=0; $attempt -lt 40; $attempt++) {
-        $modal = $desktop.FindFirst([System.Windows.Automation.TreeScope]::Children, $modalCondition)
-        if ($null -ne $modal -and $modal.Current.ProcessId -eq $app.Process.Id) { break }
-        $modal = $null
+        $windows = $desktop.FindAll([System.Windows.Automation.TreeScope]::Children, $ownerCondition)
+        for ($windowIndex=0; $windowIndex -lt $windows.Count; $windowIndex++) {
+            $candidate = $windows.Item($windowIndex)
+            if ($candidate.Current.NativeWindowHandle -ne $app.Process.MainWindowHandle.ToInt32() -and
+                $candidate.Current.ControlType -eq [System.Windows.Automation.ControlType]::Window) {
+                $modal = $candidate
+                break
+            }
+        }
+        if ($null -ne $modal) { break }
         Start-Sleep -Milliseconds 150
     }
-    if ($null -eq $modal) { throw 'Explicit Apply confirmation dialog did not appear.' }
+    if ($null -eq $modal) {
+        $desktopWindows = $desktop.FindAll(
+            [System.Windows.Automation.TreeScope]::Children,
+            [System.Windows.Automation.Condition]::TrueCondition)
+        $titles = @($desktopWindows | ForEach-Object { $_.Current.Name } | Where-Object { $_ })
+        throw ("Explicit Apply dialog absent; invoker alive=$($invokeThread.IsAlive); " +
+            "invoker error=$([DkCiAsyncUiInvoke]::Error); windows=$($titles -join ' | ')")
+    }
     $yesCondition = [System.Windows.Automation.PropertyCondition]::new(
         [System.Windows.Automation.AutomationElement]::AutomationIdProperty, '6')
     $yes = $modal.FindFirst($scope,$yesCondition)
     if ($null -eq $yes) {
+        foreach ($yesName in @('Yes','예','네','&Yes')) {
+            $yes = $modal.FindFirst($scope,
+                [System.Windows.Automation.PropertyCondition]::new(
+                    [System.Windows.Automation.AutomationElement]::NameProperty,$yesName))
+            if ($null -ne $yes) { break }
+        }
+    }
+    if ($null -eq $yes) {
         $names = @(Get-UiNames $modal)
-        throw ('Confirmation Yes button was not available: ' + ($names -join ' | '))
+        throw ("Confirmation Yes button not found (title=$($modal.Current.Name)): " +
+            ($names -join ' | '))
     }
     Invoke-UiButton $yes
     if (-not $invokeThread.Join(8000)) { throw 'Apply UI automation did not finish after confirmation.' }
