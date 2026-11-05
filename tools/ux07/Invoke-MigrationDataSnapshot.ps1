@@ -13,7 +13,11 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 function Normalize-Path([string]$path) {
-    return [IO.Path]::GetFullPath($path).TrimEnd('\')
+    $full = [IO.Path]::GetFullPath($path)
+    if ([string]::Equals($full,[IO.Path]::GetPathRoot($full),[StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Filesystem roots are not allowed as a backup or restore scope.'
+    }
+    return $full.TrimEnd('\')
 }
 function Is-Under([string]$path,[string]$root) {
     return $path.StartsWith($root + '\',[StringComparison]::OrdinalIgnoreCase) -or
@@ -31,18 +35,21 @@ function Assert-NoReparse([string]$directory) {
     }
 }
 function Relative-Path([string]$root,[string]$child) {
-    $relative = [IO.Path]::GetRelativePath($root,$child)
-    if ([IO.Path]::IsPathFullyQualified($relative) -or
-        $relative -eq '.' -or $relative -eq '..' -or
-        $relative.StartsWith('..\', [StringComparison]::Ordinal) -or
-        $relative.StartsWith('../', [StringComparison]::Ordinal)) {
-        throw "Unsafe relative path in snapshot: $relative"
+    # Use only .NET Framework methods available in Windows PowerShell 5.1.
+    $prefix = $root + '\'
+    if (-not $child.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)) {
+        throw 'File is outside the snapshot source root.'
+    }
+    $relative = $child.Substring($prefix.Length)
+    if ([string]::IsNullOrWhiteSpace($relative) -or
+        $relative -eq '..' -or $relative.StartsWith('..\')) {
+        throw 'Unsafe relative file path.'
     }
     return $relative
 }
 function Check-ManifestPath([string]$root,[string]$relative) {
     if ([string]::IsNullOrWhiteSpace($relative) -or
-        [IO.Path]::IsPathFullyQualified($relative)) {
+        [IO.Path]::IsPathRooted($relative)) {
         throw 'Snapshot manifest has a missing or rooted path.'
     }
     $dest = Normalize-Path (Join-Path $root $relative)
