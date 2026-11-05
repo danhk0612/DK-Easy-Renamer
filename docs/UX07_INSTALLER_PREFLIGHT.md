@@ -85,3 +85,27 @@ Existing signed installer smoke coverage is retained separately. Any failed upgr
 `VerifySha256` is **not a code-signing substitute**: the official GitHub API returns both the asset and digest. The downloaded file must still pass the existing public Authenticode/trusted publisher preflight, and should be rechecked immediately before any process execution. The repository has no approved public signer and no official stable release. Consequently, this stage has no WPF button, automatic installer launch, release or tag.
 
 The ability to install the WPF app without a trusted MSIX certificate (PR #18) concerns optional Explorer shell registration only. It does **not** authorize running an unsigned downloaded executable automatically.
+
+## UX-07b (part 3): in-app signed installer handoff (disabled until public approval)
+
+A manual click on **업데이트 확인** is the only trigger. When a newer official stable release is published, the app presents its notes. Two possible outcomes are intentionally different:
+
+- **Current build (no approved public publisher):** `PublicUpdatePolicy.TryGetApprovedPublisher` returns false; the user can choose to open the official release webpage. No installer download or execution occurs. Existing development/self-signed signing certificates and unsigned APP-ONLY packages **cannot** activate this flow.
+- **After a future reviewed public publisher identity is compiled into `PublicUpdatePolicy`:** only an exact `DK-Easy-Renamer-X.Y.Z-x64-RELEASE.exe` asset from a newer official stable release qualifies. The user explicitly chooses download; the existing `VerifiedInstallerDownloader` checks redirect/size/SHA-256 before exposing the staged file.
+
+For a qualifying downloaded installer:
+
+1. The WPF application invokes its **packaged** `Validate-PublicInstaller.ps1` with a pinned subject and exact thumbprint. The PowerShell script requires a valid Windows Authenticode signature and checks the downloaded bytes against the official asset's SHA-256. It never imports certificates.
+2. It inspects the current-user Explorer shell registration. Status `0` means keep the optional shell menu; statuses `1` and `2` mean keep it unregistered. Unknown or conflicting status blocks installer handoff instead of silently removing existing context-menu registration.
+3. A separate warning explicitly describes session-only Undo/unsaved UI state and asks for **final approval**.
+4. The *same SHA-256 and public publisher signature checks* run again just before process launch. Only after approval and verification is Inno Setup started, with `/TASKS=shellmenu` for an already registered menu or `/TASKS=` for an app-only installation. Inno manages app close/update lifecycle.
+5. If the user declines or verification fails, the newly downloaded staging directory is removed on a best-effort basis. A directory handed to a running installer is left intact because deleting it while Setup runs would break the update. Staged-file post-install cleanup is **not yet automatic**.
+
+### Unresolved production and Windows 11 gates
+
+- A public signing certificate and its reviewed subject/thumbprint have **not been chosen**, and the project's GitHub repository has no published official stable release. Accordingly, no live in-app download, valid-public-signer positive test or real installer execution was possible.
+- A newly approved MSIX Publisher might change sparse identity; a migration policy for existing developer-signed Explorer registrations must be tested on real Windows 11 machines **before** the policy constants may be populated.
+- Windows 11 GUI consent, installation return codes, reopen/rollback behavior, app data preservation, and safe cleanup after installation remain acceptance work. CI build/tests and previous Windows Server upgrade smoke **do not** establish full public release readiness.
+- Do not enable installer launch by substituting test signer values, trusting a self-signed certificate automatically, or allowing unsigned executables.
+
+This is a guarded install workflow, **not** a usable public automatic updater until those gates are explicitly completed.
