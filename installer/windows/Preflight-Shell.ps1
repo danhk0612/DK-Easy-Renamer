@@ -7,13 +7,6 @@ $logDir = Join-Path $env:LOCALAPPDATA 'DK Easy Renamer\Logs'
 New-Item -Path $logDir -ItemType Directory -Force | Out-Null
 $log = Join-Path $logDir 'shell-preflight.log'
 try {
-    # Check the package family BEFORE an installer can replace application files.
-    # A changed public publisher must be migrated explicitly, not silently.
-    $publisherCheck = Join-Path $PSScriptRoot 'Test-ShellPublisherTransition.ps1'
-    if (-not (Test-Path -LiteralPath $publisherCheck -PathType Leaf)) {
-        throw 'Explorer publisher transition preflight is missing.'
-    }
-    & $publisherCheck -PackagePath $PackagePath | Out-Null
     $sign = Get-AuthenticodeSignature -LiteralPath $PackagePath -ErrorAction Stop
     if ($null -eq $sign.SignerCertificate) {
         throw "Signed MSIX certificate information cannot be read (status: $($sign.Status))."
@@ -34,6 +27,14 @@ try {
     elseif ($sign.Status -ne 'Valid') {
         throw "MSIX code-signing certificate is not valid (status: $($sign.Status))."
     }
+
+    # After certificate validation but still BEFORE copying application files,
+    # reject a different existing MSIX Publisher/package family.
+    $publisherCheck = Join-Path $PSScriptRoot 'Test-ShellPublisherTransition.ps1'
+    if (-not (Test-Path -LiteralPath $publisherCheck -PathType Leaf)) {
+        throw 'Explorer publisher transition preflight is missing.'
+    }
+    & $publisherCheck -PackagePath $PackagePath | Out-Null
 
     "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Preflight passed for signer $($cert.Subject) $($cert.Thumbprint)" |
         Add-Content -LiteralPath $log -Encoding UTF8
