@@ -113,6 +113,40 @@ public sealed class RenameEngineTests
     }
 
     [Fact]
+    public void DescendingSizeSortKeepsUserOrderForEqualFileSizes()
+    {
+        using var f = new WorkFolder();
+        string first = f.File("first.txt", "same");
+        string bigger = f.File("bigger.txt", "longer contents");
+        string second = f.File("second.txt", "also");
+        var selection = new[] { new RenameSelection(first), new RenameSelection(bigger), new RenameSelection(second) };
+
+        var sorted = RenameSelectionSorter.Sort(selection, RenameSortField.Size, descending: true);
+        Assert.Equal([bigger, first, second], sorted.Select(x => x.Path));
+
+        var ascending = RenameSelectionSorter.Sort(selection, RenameSortField.Size);
+        Assert.Equal([first, second, bigger], ascending.Select(x => x.Path));
+    }
+
+    [Fact]
+    public void DescendingModifiedDateSortKeepsUserOrderForEqualTimes()
+    {
+        using var f = new WorkFolder();
+        string first = f.File("one.txt");
+        string newer = f.File("newer.txt");
+        string second = f.File("two.txt");
+        var olderTime = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var newerTime = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        System.IO.File.SetLastWriteTimeUtc(first, olderTime);
+        System.IO.File.SetLastWriteTimeUtc(second, olderTime);
+        System.IO.File.SetLastWriteTimeUtc(newer, newerTime);
+        var selection = new[] { new RenameSelection(first), new RenameSelection(newer), new RenameSelection(second) };
+
+        var sorted = RenameSelectionSorter.Sort(selection, RenameSortField.ModifiedUtc, descending: true);
+        Assert.Equal([newer, first, second], sorted.Select(x => x.Path));
+    }
+
+    [Fact]
     public void RulePipelinePreservesExtensionUnlessExplicitlyChanged()
     {
         using var f = new WorkFolder();
