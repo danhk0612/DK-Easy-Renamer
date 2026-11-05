@@ -23,9 +23,17 @@ function Full-NonRoot([string]$path) {
     return $full.TrimEnd('\')
 }
 function Assert-NotLink([string]$path) {
-    if (((Get-Item -LiteralPath $path -Force -ErrorAction Stop).Attributes -band
-        [IO.FileAttributes]::ReparsePoint) -ne 0) {
-        throw "Symlinks and junctions are not permitted: $path"
+    # Check every existing ancestor, not just the leaf. A normal-looking file
+    # below a junction otherwise bypasses the archive's no-link policy.
+    $current = [IO.Path]::GetFullPath($path)
+    while ($true) {
+        if (((Get-Item -LiteralPath $current -Force -ErrorAction Stop).Attributes -band
+            [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Symlinks and junctions are not permitted: $current"
+        }
+        $parent = [IO.Path]::GetDirectoryName($current)
+        if ([string]::IsNullOrEmpty($parent)) { break }
+        $current = $parent
     }
 }
 function Assert-Signer([string]$path) {
