@@ -97,6 +97,9 @@ jobs:
           } finally {
             Remove-Item -LiteralPath $fixture -Force -ErrorAction SilentlyContinue
           }
+      - name: Reject silent MSIX publisher replacement before registration
+        shell: pwsh
+        run: ./tools/t04/Smoke-PublisherTransition.ps1
       - name: Verify signed-fixture update handoff and cleanup in disposable CI
         shell: pwsh
         timeout-minutes: 6

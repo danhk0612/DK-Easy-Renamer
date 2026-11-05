@@ -94,6 +94,7 @@ finally { $zip.Dispose() }
 foreach ($script in @(
     'installer\windows\Register-Shell.ps1',
     'installer\windows\Preflight-Shell.ps1',
+    'installer\windows\Test-ShellPublisherTransition.ps1',
     'installer\windows\Unregister-Shell.ps1',
     'tools\ux07\Validate-PublicInstaller.ps1',
     'tools\ux07\Invoke-VerifiedUpdate.ps1',

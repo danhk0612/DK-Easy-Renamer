@@ -28,6 +28,14 @@ try {
         throw "MSIX code-signing certificate is not valid (status: $($sign.Status))."
     }
 
+    # After certificate validation but still BEFORE copying application files,
+    # reject a different existing MSIX Publisher/package family.
+    $publisherCheck = Join-Path $PSScriptRoot 'Test-ShellPublisherTransition.ps1'
+    if (-not (Test-Path -LiteralPath $publisherCheck -PathType Leaf)) {
+        throw 'Explorer publisher transition preflight is missing.'
+    }
+    & $publisherCheck -PackagePath $PackagePath | Out-Null
+
     "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Preflight passed for signer $($cert.Subject) $($cert.Thumbprint)" |
         Add-Content -LiteralPath $log -Encoding UTF8
 }

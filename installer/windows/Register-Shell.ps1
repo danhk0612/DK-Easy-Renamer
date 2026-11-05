@@ -45,6 +45,14 @@ try {
         Write-Diagnostic ("MSIX signer metadata unavailable from Get-AuthenticodeSignature (status: {0}); Appx will validate package." -f $signature.Status)
     }
 
+    # Refuse a cross-publisher transition before Remove-AppxPackage, so
+    # an unexpected identity cannot destroy the previously registered menu.
+    $publisherCheck = Join-Path $resolved 'Test-ShellPublisherTransition.ps1'
+    if (-not (Test-Path -LiteralPath $publisherCheck -PathType Leaf)) {
+        throw 'Explorer publisher transition guard is missing.'
+    }
+    & $publisherCheck -PackagePath $packageFile | Out-Null
+
     $existing = @(Get-AppxPackage -Name 'DKEasyRenamer.Shell' -ErrorAction Stop)
     foreach ($pkg in $existing) {
         Write-Diagnostic "Removing previous package: $($pkg.PackageFullName)"
