@@ -1,5 +1,7 @@
 # T05 — Windows 11 installer and distribution (automated build)
 
+For the current Git checkout → automated CI artifact download → Windows 11 manual test workflow, use [Windows 11 test kit](WINDOWS11_TEST_KIT.md). The older version-specific packaging examples below remain historical development notes; never use an unsigned DO-NOT-INSTALL candidate as a test installer.
+
 ## Packaging choice
 - **Per-user Inno Setup 6 installer**, Windows 11 x64 only. Default destination: the current user's LocalAppData\Programs\DK Easy Renamer. No UAC required for ordinary use.
 - **Self-contained .NET 10 win-x64 WPF application**, no separate .NET Desktop Runtime download required.
