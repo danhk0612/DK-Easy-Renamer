@@ -79,11 +79,11 @@ try {
     })
     Expect-Blocked { & $guard -PackagePath $package } 'mismatched registered publisher'
 
-    Write-Host 'PHASE 3: preflight rejects mismatch before signature verification'
+    Write-Host 'PHASE 3: preflight checks signature then rejects publisher mismatch before installation'
     $global:DKPublisherTestSignatureCalls = 0
     Expect-Blocked { & $preflight -PackagePath $package } 'publisher mismatch during preflight'
-    if ($global:DKPublisherTestSignatureCalls -ne 0) {
-        throw 'Preflight checked signature before blocking a publisher change.'
+    if ($global:DKPublisherTestSignatureCalls -ne 1) {
+        throw 'Preflight did not validate the signer before checking publisher change.'
     }
 
     Write-Host 'PHASE 4: registration refuses mismatch before Remove-AppxPackage'
