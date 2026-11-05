@@ -55,7 +55,8 @@ try {
     if (-not $restored.Verified -or
         (Get-FileHash -LiteralPath (Join-Path $restore 'user file.txt') -Algorithm SHA256).Hash -ne $sourceHash -or
         -not (Test-Path -LiteralPath (Join-Path $restore 'empty folder') -PathType Container) -or
-        -not [Linq.Enumerable]::SequenceEqual([byte[]][IO.File]::ReadAllBytes($b),[byte[]][IO.File]::ReadAllBytes((Join-Path $restore '한글\日本語\설정.bin')))) {
+        [Convert]::ToHexString([IO.File]::ReadAllBytes($b)) -ne
+        [Convert]::ToHexString([IO.File]::ReadAllBytes((Join-Path $restore '한글\日本語\설정.bin')))) {
         throw 'Restored disposable data differs from original, or an empty directory was lost.'
     }
 
