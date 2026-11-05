@@ -96,7 +96,7 @@ public sealed class VerifiedInstallerDownloaderTests
     [Fact]
     public async Task WrongAdvertisedSizeIsRejectedBeforeStaging()
     {
-        byte[] larger = Bytes.Concat([0x42]).ToArray();
+        byte[] larger = Bytes.Concat(new byte[] { 0x42 }).ToArray();
         using var client = new HttpClient(new StubHandler(_ => Content(larger)));
         string root = NewRoot();
         try
