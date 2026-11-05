@@ -75,3 +75,18 @@ Official Windows references:
 
 - https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/package-identity-overview
 - https://learn.microsoft.com/en-us/powershell/module/appx/get-appxpackage?view=windowsserver2025-ps
+
+## UX-07f — actual local data backup rehearsal (separate, opt-in)
+
+See [UX07_USER_DATA_SNAPSHOT.md](UX07_USER_DATA_SNAPSHOT.md). The current
+application has **no persisted preset/settings store**; rule editing and Undo
+are in-memory. The dedicated local app-data folder currently mainly contains
+diagnostic logs and temporary update files. A new standalone PowerShell tool
+can back up that folder with file-by-file SHA-256 and rehearse restoration to a
+**brand-new** directory without overwriting live user data. The disposable
+Windows CI checks the backup and restore path with fake data only.
+
+This is NOT an old installer/MSIX backup, an HKCU or Explorer registration
+backup, a successful live-data restoration, or an authorization for a publisher
+change. All previously listed public signer and Windows 11 migration/rollback
+gates remain open.
