@@ -4,7 +4,7 @@
 The Core library is a deterministic, WPF-independent engine; it does not integrate into the user-facing GUI until T03.
 
 ### User-controlled ordering
-Selection order is authoritative for numbering. Natural sorting uses numeric groups, with other supported keys: name, creation date, modification date, and size. Excluded entries remain visible but do not consume sequence numbers. Caller-driven manual reorder is represented by the input list order. Both ascending and descending sorting preserve the original user order for equal sort keys (e.g., equal file sizes or modification timestamps).
+Selection order is authoritative for numbering. Natural sorting uses numeric groups, with other supported keys: name, creation date, modification date, and size. Excluded entries remain visible but do not consume sequence numbers. Caller-driven manual reorder is represented by the input list order. Both ascending and descending sorting preserve the original user order for equal sort keys (e.g., equal file sizes or modification timestamps). Name and natural-name sorting use actual folder names even when an incoming selected directory path ends with a separator; original selection paths are unchanged.
 
 ### Rules
 Pure ordered rules: find/replace; add/remove text; numbering (start, step, width, position, separator, including the full signed 64-bit start range without negative-value overflow); remove N chars; extract/remove slice; case; explicit extension; creation/modification date; regex with bounded evaluation. Rules operate on the stem by default. Extensions change only using an explicit extension rule. Rule enablement is per rule.
