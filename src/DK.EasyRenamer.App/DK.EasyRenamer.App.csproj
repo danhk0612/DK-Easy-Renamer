@@ -19,5 +19,9 @@
              Link="Validate-PublicInstaller.ps1"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\tools\ux07\Invoke-VerifiedUpdate.ps1"
+             Link="Invoke-VerifiedUpdate.ps1"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

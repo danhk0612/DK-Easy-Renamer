@@ -89,19 +89,47 @@ public partial class MainWindow
                 return;
             }
 
-            var setup = new ProcessStartInfo(verifiedFile)
-            {
-                UseShellExecute = true
-            };
-            // Keep an existing Explorer registration enabled on upgrade,
-            // and keep an app-only installation app-only.
-            setup.ArgumentList.Add(shellState == 0 ? "/TASKS=shellmenu" : "/TASKS=");
-            using Process? installer = Process.Start(setup);
-            if (installer is null)
-                throw new InvalidOperationException("설치 프로그램을 시작할 수 없습니다.");
+            // Inno Setup can close this WPF process during an update. Launch a
+            // separate, one-shot helper which verifies the signed installer AGAIN,
+            // runs Setup, waits for its process tree, and removes only its own
+            // finished staging file. The application does not spawn a resident agent.
+            string helper = Path.Combine(AppContext.BaseDirectory, "Invoke-VerifiedUpdate.ps1");
+            if (!File.Exists(helper))
+                throw new InvalidOperationException("업데이트 실행 보조 스크립트가 없습니다.");
 
-            // Let the existing Inno Setup lifecycle close the app when needed.
-            // The unique staged directory must stay intact while Setup is running.
+            string modernPowerShell = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "PowerShell", "7", "pwsh.exe");
+            string powerShell = File.Exists(modernPowerShell)
+                ? modernPowerShell
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
+                    "WindowsPowerShell", "v1.0", "powershell.exe");
+
+            var handoff = new ProcessStartInfo(powerShell)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = AppContext.BaseDirectory
+            };
+            foreach (string argument in new[]
+            {
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-File", helper, "-InstallerPath", verifiedFile,
+                "-ExpectedSha256", asset.Sha256,
+                "-ExpectedSignerSubject", publisher.Subject,
+                "-ExpectedSignerThumbprint", publisher.Thumbprint
+            })
+                handoff.ArgumentList.Add(argument);
+            // Keep the optional Explorer registration in its current state.
+            if (shellState == 0)
+                handoff.ArgumentList.Add("-PreserveShellMenu");
+
+            using Process? worker = Process.Start(handoff);
+            if (worker is null)
+                throw new InvalidOperationException("업데이트 실행 보조 프로세스를 시작할 수 없습니다.");
+
+            // The detached helper now owns this particular staged installer.
+            // Deleting it here could interrupt an update after the app is closed.
             launched = true;
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidDataException or
