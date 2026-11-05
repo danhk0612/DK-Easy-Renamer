@@ -130,6 +130,19 @@ try {
     Close-SelectionGui $app
     $app = $null
 
+    # Explorer can supply one folder with and without a trailing path separator.
+    # The GUI must treat those as a single filesystem selection.
+    $singleFolder = Join-Path $fixtureRoot '빈 폴더'
+    $app = Open-SelectionGui @($singleFolder,($singleFolder + [IO.Path]::DirectorySeparatorChar))
+    $gridPattern = [System.Windows.Automation.GridPattern]$app.Grid.GetCurrentPattern(
+        [System.Windows.Automation.GridPattern]::Pattern)
+    if ($gridPattern.Current.RowCount -ne 1) {
+        throw "Equivalent folder paths created $($gridPattern.Current.RowCount) GUI rows instead of one."
+    }
+    Write-Host 'GUI canonical folder path deduplication PASS: one selected row.'
+    Close-SelectionGui $app
+    $app = $null
+
     # UI quick modes still select the standard editable rule and preview:
     # neither invocation is allowed to mutate the selected fixture.
     foreach ($mode in @('sequence','replace')) {
