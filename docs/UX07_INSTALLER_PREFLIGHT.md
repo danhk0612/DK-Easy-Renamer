@@ -69,3 +69,19 @@ The disposable 0.1.3 version is NOT a formal release, and must never become the 
 A public signing certificate is issued by an approved signing provider **after identity verification**, and is *not* produced by building binaries or generating the disposable test certificate. Public signing and user-facing automatic installation remain gated as described above.
 
 Existing signed installer smoke coverage is retained separately. Any failed upgrade assertion blocks the PR and must not be reported as successful.
+
+## UX-07b (part 2): hash-verified download staging
+
+`src/DK.EasyRenamer.Core/VerifiedInstallerDownloader.cs` adds an isolated, **non-executing** download stage. It consumes an `OfficialInstallerAsset` previously selected by `OfficialInstallerAssetVerifier.Find` from the official stable GitHub Releases API.
+
+- Caller-supplied `HttpClient` **must** disable automatic redirects (`AllowAutoRedirect = false`). The downloader inspects up to 5 redirects and accepts only HTTPS, default port, no user-info/fragment, and GitHub's `release-assets.githubusercontent.com` or `objects.githubusercontent.com` asset hosts. It rejects arbitrary external destinations and unexpected HTTP redirect handling.
+- Incoming asset name, URL, digest and positive size are checked before network/disk I/O. The maximum accepted installer size is 512 MiB.
+- Response size, streamed byte count and SHA-256 digest are compared against the official asset record. Incomplete, oversized or tampered downloads are rejected.
+- Each attempt writes to a newly generated subfolder as `download.part`; only after verification is it renamed to the expected installer filename. On any error or cancellation, that attempt's temporary folder is deleted; previously downloaded files are untouched.
+- `VerifiedInstallerDownloaderTests` use only disposable fake bytes and in-memory HTTP handlers. No real installer is downloaded or executed in tests.
+
+### Still required before an app-facing install button
+
+`VerifySha256` is **not a code-signing substitute**: the official GitHub API returns both the asset and digest. The downloaded file must still pass the existing public Authenticode/trusted publisher preflight, and should be rechecked immediately before any process execution. The repository has no approved public signer and no official stable release. Consequently, this stage has no WPF button, automatic installer launch, release or tag.
+
+The ability to install the WPF app without a trusted MSIX certificate (PR #18) concerns optional Explorer shell registration only. It does **not** authorize running an unsigned downloaded executable automatically.
