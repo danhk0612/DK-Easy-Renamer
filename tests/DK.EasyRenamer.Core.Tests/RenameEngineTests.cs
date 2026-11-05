@@ -84,7 +84,7 @@ public sealed class RenameEngineTests
     public void DirectoryWithTrailingSeparatorStillUsesNormalRenameRules()
     {
         using var f = new WorkFolder();
-        string folder = Path.Combine(f.Root, "oldFolder");
+        string folder = Path.Combine(f.Root, "oldItems");
         Directory.CreateDirectory(folder);
         var plan = RenamePlanner.Build(
             [new RenameSelection(folder + Path.DirectorySeparatorChar)],
@@ -92,7 +92,7 @@ public sealed class RenameEngineTests
 
         Assert.True(plan.IsValid, string.Join("; ", plan.Errors));
         Assert.Equal(folder, plan.Items[0].OriginalPath);
-        Assert.Equal(Path.Combine(f.Root, "newFolder"), plan.Items[0].TargetPath);
+        Assert.Equal(Path.Combine(f.Root, "newItems"), plan.Items[0].TargetPath);
         var applied = RenameExecutor.Apply(plan);
         Assert.True(applied.Succeeded, string.Join("; ", applied.Errors));
         Assert.True(RenameExecutor.Undo(applied.Undo!).Succeeded);
