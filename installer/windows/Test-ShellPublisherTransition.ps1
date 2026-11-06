@@ -10,6 +10,11 @@ if (-not (Test-Path -LiteralPath $PackagePath -PathType Leaf)) {
     throw 'Incoming shell identity package does not exist.'
 }
 Add-Type -AssemblyName System.IO.Compression
+# Windows PowerShell 5.1 (.NET Framework) defines ZipFile in FileSystem,
+# while PowerShell 7 loads it through the modern framework assemblies.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+}
 $zip = [IO.Compression.ZipFile]::OpenRead($PackagePath)
 try {
     $entry = $zip.GetEntry('AppxManifest.xml')
