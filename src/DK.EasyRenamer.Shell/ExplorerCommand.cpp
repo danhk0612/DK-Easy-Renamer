@@ -148,10 +148,10 @@ namespace
             switch (kind_)
             {
             case CommandKind::Editor:
-                label = L"DK Easy Renamer\uB85C \uC774\uB984 \uBCC0\uACBD";
+                label = L"\uC77C\uBC18 \uC774\uB984 \uBCC0\uACBD...";
                 break;
             case CommandKind::QuickGroup:
-                label = L"DK Easy Renamer \uBE60\uB978 \uC791\uC5C5";
+                label = L"DK Easy Renamer";
                 break;
             case CommandKind::Sequence:
                 label = L"\uBE60\uB978 \uC21C\uBC88 \uBCC0\uACBD...";
@@ -181,8 +181,8 @@ namespace
             if (!value) return E_POINTER;
             switch (kind_)
             {
-            case CommandKind::Editor: *value = CommandClsid; break;
-            case CommandKind::QuickGroup: *value = QuickGroupClsid; break;
+            case CommandKind::Editor: *value = QuickGroupClsid; break;
+            case CommandKind::QuickGroup: *value = CommandClsid; break;
             case CommandKind::Sequence: *value = QuickSequenceGuid; break;
             case CommandKind::Replace: *value = QuickReplaceGuid; break;
             }
@@ -191,8 +191,15 @@ namespace
         HRESULT STDMETHODCALLTYPE GetState(IShellItemArray* items, BOOL, EXPCMDSTATE* state) override
         {
             if (!state) return E_POINTER;
+            // Explorer can query flyout children before passing a selection.
+            // Their actual Invoke still requires a nonempty IShellItemArray.
+            if (!items)
+            {
+                *state = ECS_ENABLED;
+                return S_OK;
+            }
             DWORD count = 0;
-            *state = items && SUCCEEDED(items->GetCount(&count)) && count > 0
+            *state = SUCCEEDED(items->GetCount(&count)) && count > 0
                 ? ECS_ENABLED : ECS_DISABLED;
             return S_OK;
         }
@@ -223,14 +230,17 @@ namespace
         HRESULT STDMETHODCALLTYPE GetFlags(EXPCMDFLAGS* value) override
         {
             if (!value) return E_POINTER;
-            *value = kind_ == CommandKind::QuickGroup ? ECF_HASSUBCOMMANDS : ECF_DEFAULT;
+            *value = kind_ == CommandKind::QuickGroup
+                ? static_cast<EXPCMDFLAGS>(ECF_HASSUBCOMMANDS | ECF_ISDROPDOWN)
+                : ECF_DEFAULT;
             return S_OK;
         }
         HRESULT STDMETHODCALLTYPE EnumSubCommands(IEnumExplorerCommand** commands) override;
     };
 
-    // The editor command keeps the original single-click Explorer entry. The separate
-    // "quick actions" command exposes two child commands without loading WPF in Explorer.
+    // Windows 11 may display only one top-level verb per package/item type.
+    // Keep the original registered CLSID as one flyout with the editor
+    // and both quick actions, without loading WPF until a child is invoked.
     class QuickCommandsEnumerator final : public IEnumExplorerCommand
     {
         volatile LONG refs_ = 1;
@@ -262,9 +272,15 @@ namespace
             if (!output || (count > 1 && !fetched)) return E_POINTER;
             if (fetched) *fetched = 0;
             ULONG produced = 0;
-            while (produced < count && index_ < 2)
+            while (produced < count && index_ < 3)
             {
-                CommandKind kind = index_++ == 0 ? CommandKind::Sequence : CommandKind::Replace;
+                CommandKind kind;
+                switch (index_++)
+                {
+                case 0: kind = CommandKind::Editor; break;
+                case 1: kind = CommandKind::Sequence; break;
+                default: kind = CommandKind::Replace; break;
+                }
                 auto* command = new (std::nothrow) ExplorerCommand(kind);
                 if (!command)
                 {
@@ -278,10 +294,10 @@ namespace
         }
         HRESULT STDMETHODCALLTYPE Skip(ULONG count) override
         {
-            ULONG remaining = 2 - index_;
+            ULONG remaining = 3 - index_;
             if (count > remaining)
             {
-                index_ = 2;
+                index_ = 3;
                 return S_FALSE;
             }
             index_ += count;
@@ -366,7 +382,9 @@ extern "C" HRESULT __stdcall ModuleGetClassObject(
 {
     if (!IsEqualCLSID(clsid, CommandClsid) && !IsEqualCLSID(clsid, QuickGroupClsid))
         return CLASS_E_CLASSNOTAVAILABLE;
-    CommandKind kind = IsEqualCLSID(clsid, CommandClsid) ? CommandKind::Editor : CommandKind::QuickGroup;
+    // Both CLSIDs can still be activated by existing cached registrations,
+    // but new packages expose only the original, stable top-level CLSID.
+    CommandKind kind = CommandKind::QuickGroup;
     auto* factory = new (std::nothrow) CommandFactory(kind);
     if (!factory) return E_OUTOFMEMORY;
     HRESULT hr = factory->QueryInterface(iid, output);
