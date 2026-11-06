@@ -55,7 +55,7 @@ jobs:
           ./tools/t05/Build-Distribution.ps1 -Version 0.2.0 -Classic
           ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Classic
           ./tools/release/Prepare-ClassicRelease.ps1
-          $file = 'artifacts/t05/installer/DK-Easy-Renamer-0.2.0-x64-CLASSIC-UNSIGNED.exe'
+          $file = 'artifacts/t05/installer/DK-Easy-Renamer-0.2.0-x64-RELEASE.exe'
           if (-not (Test-Path -LiteralPath $file)) { throw 'Installer missing.' }
           if ((Get-AuthenticodeSignature -LiteralPath $file).Status -ne 'NotSigned') {
             throw 'Unexpected signature on unsigned release.'
@@ -66,7 +66,7 @@ jobs:
         with:
           name: unsigned-classic-v0.2.0-public-candidate
           path: |
-            artifacts/t05/installer/DK-Easy-Renamer-0.2.0-x64-CLASSIC-UNSIGNED.exe
+            artifacts/t05/installer/DK-Easy-Renamer-0.2.0-x64-RELEASE.exe
             artifacts/t05/installer/SHA256SUMS.txt
           retention-days: 30
 
@@ -115,7 +115,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release create v0.2.0 \
-            "dist/DK-Easy-Renamer-0.2.0-x64-CLASSIC-UNSIGNED.exe" \
+            "dist/DK-Easy-Renamer-0.2.0-x64-RELEASE.exe" \
             "dist/SHA256SUMS.txt" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
