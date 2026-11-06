@@ -2,7 +2,7 @@
 
 A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
 
-> **Status (2026-11-06):** Current tested application version: **0.1.2**. The Windows 11 GUI and three-action Explorer flyout were user-checked; file- versus folder-specific submenu labels were implemented in PR #47 and passed native COM CI, with additional manual testing explicitly skipped. Development-signed installers are **TEST-ONLY**, not public releases. GitHub Releases distribution using a **Korean individual developer's CA-issued code-signing identity** is the selected release direction; provider, legal publisher subject, cost and first public release are pending. See the [public GitHub release plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md).
+> **Status (2026-11-06):** Current tested application version: **0.1.2**. The Windows 11 GUI and three-action Explorer flyout were user-checked; file- versus folder-specific submenu labels were implemented in PR #47 and passed native COM CI, with additional manual testing explicitly skipped. Development-signed installers are **TEST-ONLY**, not public releases. GitHub Releases distribution is selected with a **zero-cost signing budget**. The primary candidate is SignPath Foundation's free OSS program (subject to approval; Windows publisher would be **SignPath Foundation**, not the individual developer); no public certificate has been approved or used yet. See the [public GitHub release plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md) and [draft code signing policy](docs/CODE_SIGNING_POLICY.md).
 
 ## Product goals
 
@@ -63,7 +63,8 @@ The GUI uses WPF-UI 4.3.0 (MIT). All user-facing renaming actions require a sepa
 - [Rename engine](docs/RENAME_ENGINE.md)
 - [GUI design and implementation](docs/UI_IMPLEMENTATION.md)
 - [Installer / distribution](docs/INSTALLER.md)
-- [GitHub Releases / Korean individual developer signing plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md)
+- [Free GitHub Releases / SignPath Foundation candidate plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md)
+- [Code signing policy (proposed; not yet approved)](docs/CODE_SIGNING_POLICY.md)
 - [Release readiness audit](docs/RELEASE_READINESS_2026-11-06.md)
 - [Task plan](docs/TASKS.md)
 - [Contributor/agent instructions](AGENTS.md)
