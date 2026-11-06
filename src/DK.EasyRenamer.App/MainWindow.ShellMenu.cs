@@ -57,9 +57,9 @@ public partial class MainWindow
         bool enabling = _shellMenuState == 1;
         var choice = MessageBox.Show(this,
             enabling
-                ? "현재 계정의 Windows 11 탐색기 우클릭 메뉴를 등록하시겠습니까?\n" +
+                ? "현재 계정의 클래식 탐색기 우클릭 메뉴를 등록하시겠습니까?\n" +
                   "선택한 파일의 이름은 변경되지 않습니다."
-                : "현재 계정의 Windows 11 탐색기 우클릭 메뉴를 해제하시겠습니까?\n" +
+                : "현재 계정의 클래식 탐색기 우클릭 메뉴를 해제하시겠습니까?\n" +
                   "프로그램 자체는 삭제되지 않습니다.",
             "탐색기 우클릭 메뉴", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (choice != MessageBoxResult.Yes)
@@ -73,7 +73,7 @@ public partial class MainWindow
             if (result != 0)
             {
                 MessageBox.Show(this,
-                    "탐색기 메뉴 변경이 완료되지 않았습니다. 인증서 또는 패키지 등록 상태를 확인하세요.",
+                    "탐색기 메뉴 변경이 완료되지 않았습니다. 기존 등록 또는 파일 접근 권한 상태를 확인하세요.",
                     "탐색기 우클릭 메뉴", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             else
