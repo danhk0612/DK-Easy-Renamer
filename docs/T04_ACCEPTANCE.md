@@ -30,7 +30,7 @@ This creates a unique directory under %TEMP% with numeric filename samples, Unic
 | 01b | Right-click two or more selected file rows, then choose remove | All selected rows disappear from the **program list only**; source files remain unchanged |
 | 01c | Right-click included/excluded file rows and select include or exclude | Only selected rows change eligibility; preview and sequence numbering update |
 | 01d | Right-click a rule row | Right-clicked rule becomes selected; enable/disable, move up/down and remove act on that rule |
-| 02 | Right-click a single file in Explorer | Entry appears in Windows 11 *first-level* menu |
+| 02 | Right-click a single file in Explorer | One **DK Easy Renamer** root appears in Windows 11 *first-level* menu; expanding it shows editor, quick sequence and quick replace commands |
 | 03 | Right-click several selected files, including Hangul/Japanese | Exactly selected paths are passed to one GUI |
 | 04 | Right-click a folder | Folder itself is selected; children not separately renamed by default |
 | 04a | Click '폴더 추가 ▾' and choose each source mode | Parent folder only / immediate files / recursive files / direct child folders match the chosen mode; adding does not rename |
