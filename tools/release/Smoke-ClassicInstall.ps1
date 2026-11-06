@@ -29,14 +29,28 @@ if ((Test-Path -LiteralPath $installDir) -or
     throw 'Test runner not clean.'
 }
 function Invoke-Checked([string]$file,[string[]]$args) {
+    $log = Join-Path $env:RUNNER_TEMP ('classic-inno-' + [guid]::NewGuid().ToString('N') + '.log')
+    $args += ('/LOG="' + $log + '"')
+    Write-Host "Invoking: $([IO.Path]::GetFileName($file))"
     $p = Start-Process -FilePath $file -ArgumentList $args -PassThru
     try {
-        if (-not $p.WaitForExit(120000)) {
+        if (-not $p.WaitForExit(85000)) {
+            Write-Host '=== Running relevant processes ==='
+            Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -match 'DK-Easy|powershell|pwsh|unins' } |
+                Select-Object ProcessId,ParentProcessId,Name,CommandLine | Format-List |
+                Out-String | Write-Host
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
             throw "Timed out: $file"
         }
         if ($p.ExitCode -ne 0) { throw "$file failed with exit $($p.ExitCode)" }
-    } finally { $p.Dispose() }
+    } finally {
+        if (Test-Path -LiteralPath $log) {
+            Write-Host '=== Inno Setup log tail ==='
+            Get-Content -LiteralPath $log -Tail 65 | ForEach-Object { Write-Host $_ }
+        } else { Write-Host "No Inno log was created: $log" }
+        $p.Dispose()
+    }
 }
 function Check-Registered {
     if (-not (Test-Path -LiteralPath $exe -PathType Leaf) -or
