@@ -20,14 +20,14 @@ $app = Join-Path $art 'app'
 $identity = Join-Path $art 'identity'
 $outDir = Join-Path $art 'installer'
 New-Item -ItemType Directory -Path $art,$identity,$outDir -Force | Out-Null
-$inAppManifest = Join-Path $root 'src\DK.EasyRenamer.App\app.manifest'
+$inAppManifest = Join-Path $root $(if ($Classic) { 'src\DK.EasyRenamer.App\app.classic.manifest' } else { 'src\DK.EasyRenamer.App\app.manifest' })
 $inMsixManifest = Join-Path $root 'installer\shell\AppxManifest.xml'
 $appManifest = Join-Path $identity 'app.manifest'
 $msixManifest = Join-Path $identity 'AppxManifest.xml'
 $appTemplate = [IO.File]::ReadAllText($inAppManifest)
 $msixTemplate = [IO.File]::ReadAllText($inMsixManifest)
 $old = 'CN=DK Easy Renamer Development'
-if (-not $appTemplate.Contains('publisher="' + $old + '"')) { throw 'App identity template has changed.' }
+if (-not $Classic -and -not $appTemplate.Contains('publisher="' + $old + '"')) { throw 'App identity template has changed.' }
 if (-not $msixTemplate.Contains('Publisher="' + $old + '"')) { throw 'MSIX identity template has changed.' }
 [IO.File]::WriteAllText($appManifest,
     $appTemplate.Replace('publisher="' + $old + '"', 'publisher="' + $Publisher + '"'))
@@ -54,7 +54,7 @@ Copy-Item -LiteralPath $unsigned -Destination $msix -Force
 $signed = -not [string]::IsNullOrWhiteSpace($CertificateThumbprint)
 if ($signed -and ($AppOnly -or $Classic)) { throw 'Unsigned app-only/classic build cannot use a code signing certificate.' }
 if ($AppOnly -and $Classic) { throw 'Choose either AppOnly or Classic, not both.' }
-$flavor = if ($signed) { 'SIGNED-PROBE' } elseif ($Classic) { 'CLASSIC-UNSIGNED' } elseif ($AppOnly) { 'APP-ONLY' } else { 'UNSIGNED-DO-NOT-INSTALL' }
+$flavor = if ($signed) { 'SIGNED-PROBE' } elseif ($Classic) { 'RELEASE' } elseif ($AppOnly) { 'APP-ONLY' } else { 'UNSIGNED-DO-NOT-INSTALL' }
 if ($signed) {
     $cert = Get-Item -LiteralPath ('Cert:\CurrentUser\My\' + $CertificateThumbprint) -ErrorAction Stop
     if (-not $cert.HasPrivateKey -or $cert.Subject -ne $Publisher) {
@@ -120,14 +120,17 @@ if ($signed) {
         throw 'Inno Setup did not sign the installer as requested.'
     }
 }
-$hashes = @($installer,$msix) | ForEach-Object {
+$checksummed = if ($Classic) { @($installer) } else { @($installer,$msix) }
+$hashes = $checksummed | ForEach-Object {
     $hash = Get-FileHash -LiteralPath $_ -Algorithm SHA256
     "$($hash.Hash) *$([IO.Path]::GetFileName($hash.Path))"
 }
 $hashes | Set-Content -LiteralPath (Join-Path $outDir 'SHA256SUMS.txt') -Encoding ascii
 Write-Host "T05 installer candidate: $installer"
 Write-Host "T05 identity package: $msix"
-if ($AppOnly) {
+if ($Classic) {
+    Write-Warning 'UNSIGNED CLASSIC RELEASE: no certificate installed. Context menu appears under Show more options; SmartScreen may warn.'
+} elseif ($AppOnly) {
     Write-Warning 'APP-ONLY: unsigned standalone test installer. No Explorer registration; SmartScreen may block execution. Not a public release.'
 } elseif (-not $signed) {
     Write-Warning 'UNSIGNED: This setup deliberately refuses installation. Do not distribute as a release.'
