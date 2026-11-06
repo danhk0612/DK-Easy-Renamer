@@ -222,6 +222,21 @@ jobs:
           name: signpath-unsigned-app-only-preview-NOT-PUBLISHED
           path: artifacts/signpath-prep/unsigned-app-only/
           retention-days: 7
+      - name: Build release-candidate unsigned classic installer
+        shell: pwsh
+        run: |
+          ./tools/t05/Build-Distribution.ps1 -Version 0.2.0 -Classic
+          ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Classic
+          $installer = 'artifacts/t05/installer/DK-Easy-Renamer-0.2.0-x64-CLASSIC-UNSIGNED.exe'
+          if ((Get-AuthenticodeSignature -LiteralPath $installer).Status -ne 'NotSigned') {
+            throw 'Classic installer should not contain a test signature.'
+          }
+      - name: Upload classic unsigned candidate (not yet a Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: classic-unsigned-v0.2.0-rc
+          path: artifacts/t05/installer/
+          retention-days: 14
       - name: Build isolated developer-signed setup (NOT a public release)
         shell: pwsh
         run: |
@@ -291,6 +306,23 @@ jobs:
           name: t05-SIGNED-UPGRADE-TEST-ONLY
           path: artifacts/t05/upgrade-probe/
           retention-days: 7
+
+  smoke-classic:
+    name: CI smoke - unsigned classic menu on Windows Server 2025
+    needs: build-test
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: classic-unsigned-v0.2.0-rc
+          path: ${{ runner.temp }}/dk-classic-setup
+      - name: Test classic installer and owned registry cleanup
+        shell: pwsh
+        run: ./tools/release/Smoke-ClassicInstall.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-classic-setup"
 
   stable-dev-sign:
     # Explicit operator action and protected GitHub environment only.
