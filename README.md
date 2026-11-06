@@ -2,7 +2,7 @@
 
 A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
 
-> **Status (2026-11-05):** T00–T03 and T05 are merged. Windows Server 2025 CI validates signed test installs, upgrades, and optional Explorer registration; Windows 11 interactive acceptance is still open in issue #7. UX-07 manual update checks and guarded installer handoff exist, but public in-app update installation remains blocked until an approved public signing identity, a signed Release, and real Windows 11 validation. Development/CI test signatures must not be used for public releases.
+> **Status (2026-11-06):** Current tested application version: **0.1.2**. The Windows 11 GUI and three-action Explorer flyout were user-checked; file- versus folder-specific submenu labels were implemented in PR #47 and passed native COM CI, with additional manual testing explicitly skipped. Development-signed installers are **TEST-ONLY**, not public releases. GitHub Releases distribution using a **Korean individual developer's CA-issued code-signing identity** is the selected release direction; provider, legal publisher subject, cost and first public release are pending. See the [public GitHub release plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md).
 
 ## Product goals
 
@@ -37,7 +37,7 @@ git pull --ff-only
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t04\Get-Windows11TestBuild.ps1 -Mode AppOnly
 ```
 
-Use `-Mode Explorer` only in a disposable Windows 11 VM after reviewing and explicitly trusting the matching public development certificate. The script verifies the exact Git commit, successful CI, artifact hash and signer (when signed), but **never installs or modifies certificate trust**. Test artifacts are not production installers; Windows 11 GUI Apply/Undo and Explorer acceptance are still tracked in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).
+Use `-Mode Explorer` only in a disposable Windows 11 VM after reviewing and explicitly trusting the matching public development certificate. The script verifies the exact Git commit, successful CI, artifact hash and signer (when signed), but **never installs or modifies certificate trust**. Test artifacts are not production installers. Completed user checks and the last untested version of the file/folder-specific menu labels are tracked in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).
 
 ## Local development
 
@@ -63,6 +63,8 @@ The GUI uses WPF-UI 4.3.0 (MIT). All user-facing renaming actions require a sepa
 - [Rename engine](docs/RENAME_ENGINE.md)
 - [GUI design and implementation](docs/UI_IMPLEMENTATION.md)
 - [Installer / distribution](docs/INSTALLER.md)
+- [GitHub Releases / Korean individual developer signing plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md)
+- [Release readiness audit](docs/RELEASE_READINESS_2026-11-06.md)
 - [Task plan](docs/TASKS.md)
 - [Contributor/agent instructions](AGENTS.md)
 
@@ -74,25 +76,25 @@ A self-contained Windows 11 x64 setup can be compiled after the native C++ build
 
 MIT — see [LICENSE](LICENSE).
 
-### Latest T04 visual fixes (test build 0.1.1)
+### Historical T04 visual fixes (test build 0.1.1)
 
-The sparse MSIX taskbar logo and native WPF window caption now match the original document/pencil branding: no temporary `DK` logo, and `DK Easy Renamer` title displayed with white text on a blue native title bar. See the [T04 implementation PR](https://github.com/danhk0612/DK-Easy-Renamer/pull/6) and [Windows 11 acceptance checklist](https://github.com/danhk0612/DK-Easy-Renamer/issues/7). Windows 11 visual acceptance remains to be confirmed before a production release.
+The sparse MSIX taskbar logo and native WPF window caption now match the original document/pencil branding: no temporary `DK` logo, and `DK Easy Renamer` title displayed with white text on a blue native title bar. See the [T04 implementation PR](https://github.com/danhk0612/DK-Easy-Renamer/pull/6) and [Windows 11 acceptance checklist](https://github.com/danhk0612/DK-Easy-Renamer/issues/7). The branding was subsequently user-checked on Windows 11. This subsection documents the older 0.1.1 test build, not the current release candidate.
 
-**0.1.1 automated verification:** [Windows CI + signed install/uninstall smoke](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41753265249) passed. Windows 11 taskbar/icon/titlebar visual review and rename/Undo workflow acceptance are tracked in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).
+**0.1.1 automated verification:** [Windows CI + signed install/uninstall smoke](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41753265249) passed. Windows 11 visual and rename/Undo user feedback is recorded in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).
 
 
 ### UX-00/UX-01/UX-07 test build (0.1.2)
 
-- Existing Explorer rename entry remains present. Additional quick actions are grouped under a separate Explorer submenu for sequence and find/replace; WPF still previews and requires confirmation.
-- Users can manually check for new public stable GitHub Releases via the in-app **업데이트 확인** button. No automatic download or install; see issue #10.
+- The Windows 11 Explorer right-click integration exposes **one DK Easy Renamer flyout** with rename, quick sequence, and quick find/replace commands. As of PR #47, the three labels are separately tailored to files versus folders. WPF still previews and requires confirmation.
+- Users can manually check for new public stable GitHub Releases via the in-app **업데이트 확인** button. Verified download/install code exists, but **public in-app installation stays disabled** until an approved publisher and signed release; see issue #10.
 - Application and installer versions are both raised to **0.1.2** for accurate MSIX sparse identity upgrade validation.
-- Windows Server 2025 CI checks launch, quick-mode handoff, package registration and uninstall. Windows 11 menu layout and actual Apply/Undo still require issue #7 approval.
+- Windows Server 2025 **PR CI** checks launch, quick-mode handoff, package registration, uninstall and upgrade. Main push CI builds packages but skips PR-only Windows Server install jobs. Windows 11 previous flyout/UI functions were user-checked; latest file/folder-specific menu labels were auto-checked only.
 - Use a manually dispatched GitHub workflow with stable_dev_signing=true to obtain a test installer signed with the existing persistent development certificate. Ordinary PR certificates rotate.
 
-### UX-07 latest safety status (2026-11-05)
+### UX-07 safety and public-release status (2026-11-06)
 
 - PRs #19–#22 implement guarded official Release download, SHA-256 and pinned Authenticode verification, explicit install approval, single-use installer handoff/cleanup, and CI-only signed test-fixture regression checks.
 - PRs #23–#25 guard mismatched MSIX publishers and provide read-only pre-migration diagnostics. A publisher switch changes package identity and is **not** automatically migrated or removed.
 - PRs #26–#27 provide separate, opt-in local-data snapshot and old signed EXE/MSIX archive rehearsal tools. They do **not** install, unregister, migrate, or roll back a live application.
-- Remaining gates: approve a public signing identity and matching released packages; validate actual Windows 11 context menu, rename/Undo, uninstall, upgrade, publisher migration and recovery. See [issue #10](https://github.com/danhk0612/DK-Easy-Renamer/issues/10), [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7), and [rollback archive guide](docs/UX07_SIGNED_ROLLBACK_ARCHIVE.md).
+- Remaining **public-release** gates: obtain an approved individual CA signing identity; sign aligned EXE/DLL/MSIX/Setup packages; verify actual public-signature Windows 11 install, uninstall, upgrade, publisher migration and recovery. Existing dev-signed GUI/Explorer checks do not waive those gates. See [issue #10](https://github.com/danhk0612/DK-Easy-Renamer/issues/10), [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7), [public release plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md), and [rollback archive guide](docs/UX07_SIGNED_ROLLBACK_ARCHIVE.md).
 - No public Release or tag is authorized by automated CI success alone.
