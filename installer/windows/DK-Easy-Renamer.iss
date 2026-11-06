@@ -54,13 +54,13 @@ Name: shellmenu; Description: "Windows 11 탐색기 우클릭 메뉴 등록"; Fl
 #endif
 
 [Files]
+Source: "{#PackageDir}\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 #ifndef ClassicBuild
 ;; The certificate is checked only for the optional modern context menu.
 ;; An untrusted package must not block the standalone application installer.
 Source: "{#SourcePath}\Preflight-Shell.ps1"; Flags: dontcopy noencryption
 Source: "{#SourcePath}\Test-ShellPublisherTransition.ps1"; Flags: dontcopy noencryption
 Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; Flags: dontcopy noencryption
-Source: "{#PackageDir}\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Preflight-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Test-ShellPublisherTransition.ps1"; DestDir: "{app}"; Flags: ignoreversion
