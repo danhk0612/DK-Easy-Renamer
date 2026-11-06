@@ -48,6 +48,8 @@ Requires authenticated GitHub CLI but **does not require Visual Studio or a .NET
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t04\Get-Windows11TestBuild.ps1 -Mode AppOnly
 
+The run discovery queries GitHub Actions by the exact Git SHA and uses only completed/successful main runs. It is regression-tested under Windows PowerShell 5.1. If GitHub's run-listing API is temporarily unavailable, inspect the successful build under [Actions](https://github.com/danhk0612/DK-Easy-Renamer/actions/workflows/ci.yml) and pass its numeric ID explicitly using `-RunId <id>`; the script still rejects an ID from the wrong commit or workflow.
+
 The script finds successful main CI for the exact local Git SHA, downloads the artifact named **t05-UNSIGNED-APP-ONLY-TEST-ONLY**, verifies the EXE SHA-256 against its checksum file and prints the installer path. Nothing is executed or installed automatically. The bundle is under **artifacts/windows11-test/RUN_ID/AppOnly** (ignored by Git).
 
 Review the printed EXE and launch it **manually inside the VM**. APP-ONLY intentionally omits Explorer registration. Uninstall from Windows Settings > Installed apps after testing.

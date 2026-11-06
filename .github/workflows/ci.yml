@@ -74,6 +74,9 @@ jobs:
           finally {
             Remove-Item -LiteralPath $created.Root -Recurse -Force
           }
+      - name: Verify test installer CI-run discovery in Windows PowerShell 5.1
+        shell: powershell
+        run: .\tools\t04\Smoke-TestBuildRunDiscovery.ps1
       - name: Restore
         run: dotnet restore DK-Easy-Renamer.sln
       - name: Build .NET app and Core

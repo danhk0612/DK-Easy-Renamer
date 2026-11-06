@@ -30,17 +30,14 @@ if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) {
 }
 
 if ($RunId -eq 0) {
-    $json = & gh run list -R $repo --workflow ci.yml --branch main --limit 50 --json databaseId,headSha,status,conclusion,event
-    if ($LASTEXITCODE -ne 0) { throw 'Unable to list GitHub Actions runs; check gh auth status.' }
-    $matching = @($json | ConvertFrom-Json | Where-Object {
-        $_.headSha -eq $head -and $_.status -eq 'completed' -and
-        $_.conclusion -eq 'success' -and $_.event -in @('push','workflow_dispatch')
-    } | Sort-Object -Property databaseId -Descending)
-    if ($matching.Count -eq 0) {
-        throw 'No successful main CI run for this checkout. Check Actions, run ci.yml on main if needed, then retry.'
-    }
-    $RunId = [long]$matching[0].databaseId
+    # Query GitHub's REST API by the exact commit SHA. Unlike a generic
+    # recent-run listing, this cannot silently omit the requested main build.
+    $query = "repos/$repo/actions/runs?branch=main&head_sha=$head&per_page=20"
+    $response = & gh api --method GET $query
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to query GitHub Actions runs; check gh auth status.' }
+    $RunId = [long](& (Join-Path $PSScriptRoot 'Select-TestBuildRun.ps1') -Json ($response -join "`n") -HeadSha $head)
 }
+
 $runJson = & gh run view $RunId -R $repo --json databaseId,headSha,headBranch,event,status,conclusion,workflowName
 if ($LASTEXITCODE -ne 0) { throw "Could not inspect workflow run $RunId." }
 $run = $runJson | ConvertFrom-Json
