@@ -93,7 +93,7 @@ Generate an independent disposable fixture directory for each test session:
 - [ ] Invalid and duplicate targets block Apply without modifying original test files
 - [ ] Apply presents an explicit Yes/No confirmation; approving renames a fixture without altering contents
 - [ ] Undo restores original name and content; an occupied original path blocks unsafe rollback
-- [ ] Signed Explorer mode only: one **DK Easy Renamer** flyout is visible in the first-level context menu for files/folders; expanding it shows **일반 이름 변경...**, **빠른 순번 변경...**, **빠른 찾기·바꾸기...**
+- [ ] Signed Explorer mode only: right-clicking files opens a **DK Easy Renamer** flyout with **파일 이름 변경...**, **파일 빠른 순번 변경...**, **파일 빠른 찾기·바꾸기...**; right-clicking folders opens the same root with **폴더 이름 변경...**, **폴더 빠른 순번 변경...**, **폴더 빠른 찾기·바꾸기...**. Folder commands target the selected folder itself, not its contents.
 - [ ] Each of those three menu actions opens the existing app with exactly the selected file/folder paths, with quick rules preselected and **without automatic rename**
 - [ ] Signed install and uninstall preserve fixture data and correctly remove shell registration; an upgrade remains a separate test
 

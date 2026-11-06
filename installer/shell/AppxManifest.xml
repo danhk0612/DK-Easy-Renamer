@@ -33,6 +33,8 @@
             <com:SurrogateServer DisplayName="DK Easy Renamer">
               <com:Class Id="73F9A0E1-982D-4C4E-AB20-987DCA14E930"
                          Path="DK.EasyRenamer.Shell.dll" ThreadingModel="STA" />
+              <com:Class Id="F7BE1B68-314C-4F75-9F3E-7C3597B42AD1"
+                         Path="DK.EasyRenamer.Shell.dll" ThreadingModel="STA" />
             </com:SurrogateServer>
           </com:ComServer>
         </com:Extension>
@@ -42,7 +44,7 @@
               <desktop5:Verb Id="DKEasyRenameFiles" Clsid="73F9A0E1-982D-4C4E-AB20-987DCA14E930" />
             </desktop5:ItemType>
             <desktop5:ItemType Type="Directory">
-              <desktop5:Verb Id="DKEasyRenameFolders" Clsid="73F9A0E1-982D-4C4E-AB20-987DCA14E930" />
+              <desktop5:Verb Id="DKEasyRenameFolders" Clsid="F7BE1B68-314C-4F75-9F3E-7C3597B42AD1" />
             </desktop5:ItemType>
           </desktop4:FileExplorerContextMenus>
         </desktop4:Extension>
