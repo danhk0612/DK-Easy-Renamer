@@ -100,6 +100,44 @@ public partial class MainWindow
         }
     }
 
+    // Right-clicking an already selected row preserves the complete multi-selection.
+    // Right-clicking another row targets only that row for the menu commands.
+    private void OnFilesRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var row = FindRow(e.OriginalSource as DependencyObject);
+        if (row is not null && !row.IsSelected)
+        {
+            FilesGrid.SelectedItems.Clear();
+            row.IsSelected = true;
+        }
+    }
+
+    private void OnFilesContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        // Commands act on the current selection; never open a delete-like menu
+        // when no file row is selected.
+        if (FilesGrid.SelectedItems.Count == 0) e.Handled = true;
+    }
+
+    private void OnIncludeSelectedFiles(object sender, RoutedEventArgs e) => SetSelectedFileInclusion(true);
+    private void OnExcludeSelectedFiles(object sender, RoutedEventArgs e) => SetSelectedFileInclusion(false);
+
+    private void SetSelectedFileInclusion(bool include)
+    {
+        var selected = FilesGrid.SelectedItems.Cast<FileRow>().ToArray();
+        if (selected.Length == 0) return;
+        _batchUpdatingIncluded = true;
+        try
+        {
+            foreach (FileRow row in selected) row.Included = include;
+        }
+        finally { _batchUpdatingIncluded = false; }
+        _justApplied = false;
+        RefreshPreview();
+    }
+
+    private void OnSelectAllFiles(object sender, RoutedEventArgs e) => FilesGrid.SelectAll();
+
     private void OnRemoveFiles(object sender, RoutedEventArgs e)
     {
         var selected = FilesGrid.SelectedItems.Cast<FileRow>().ToArray();

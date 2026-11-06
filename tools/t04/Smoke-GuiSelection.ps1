@@ -86,6 +86,17 @@ function Open-SelectionGui([string[]]$paths, [string]$quickMode = '') {
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
         throw 'The branded WPF titlebar icon is absent, offscreen or too small.'
     }
+    # Native caption buttons were invisible on the user's Windows 11 screenshot.
+    # Verify each explicit WPF control is visible at the top right of the app.
+    foreach ($buttonId in @('MinimizeWindowButton','MaximizeWindowButton','CloseWindowButton')) {
+        $button = Find-AutomationId $gui $buttonId
+        if ($null -eq $button -or $button.Current.IsOffscreen -or -not $button.Current.IsEnabled -or
+            $button.Current.BoundingRectangle.Width -lt 40 -or
+            $button.Current.BoundingRectangle.Height -lt 30) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "Titlebar control $buttonId is missing, disabled or too small."
+        }
+    }
     if ($null -eq $grid) {
         $names = Get-UiNames $gui
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue

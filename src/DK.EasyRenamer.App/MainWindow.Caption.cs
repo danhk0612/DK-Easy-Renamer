@@ -23,9 +23,26 @@ public partial class MainWindow
 
     private void OnWindowSourceInitialized(object? sender, EventArgs e) => ApplyNativeCaptionStyle();
 
+    private void OnMinimizeWindow(object sender, RoutedEventArgs e) =>
+        WindowState = System.Windows.WindowState.Minimized;
+
+    private void OnMaximizeWindow(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == System.Windows.WindowState.Maximized
+            ? System.Windows.WindowState.Normal
+            : System.Windows.WindowState.Maximized;
+
+    private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
+
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        if (MaximizeWindowGlyph is not null)
+            MaximizeWindowGlyph.Text = WindowState == System.Windows.WindowState.Maximized
+                ? "\uE923" : "\uE922";
+    }
+
     private void ApplyNativeCaptionStyle()
     {
-        // Keep the native, movable/resizable Windows 11 caption and its system buttons.
+        // Preserve native window movement/resizing and caption metadata; WPF draws the three titlebar buttons.
         // Explicitly set its text/colors: a branded caption must not render as a blank blue bar.
         Title = WindowCaption;
         var handle = new WindowInteropHelper(this).Handle;
