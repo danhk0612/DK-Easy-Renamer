@@ -137,6 +137,16 @@ jobs:
           if (-not $msbuild) { throw 'MSBuild.exe not found in installed Visual Studio.' }
           & $msbuild 'src/DK.EasyRenamer.Shell/DK.EasyRenamer.Shell.vcxproj' /p:Configuration=Release /p:Platform=x64 /m
           if ($LASTEXITCODE -ne 0) { throw 'Native shell build failed.' }
+      - name: Exercise native COM Explorer flyout at runtime
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $msbuild = & $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+          if (-not $msbuild) { throw 'MSBuild.exe not found for native flyout runtime test.' }
+          & $msbuild 'tools/t04/Smoke-QuickFlyout.vcxproj' /p:Configuration=Release /p:Platform=x64 /m
+          if ($LASTEXITCODE -ne 0) { throw 'Native COM runtime test build failed.' }
+          & 'artifacts/t01/native/Smoke-QuickFlyout.exe' 'artifacts/t01/native/DK.EasyRenamer.Shell.dll'
+          if ($LASTEXITCODE -ne 0) { throw 'Native COM runtime flyout enumeration failed.' }
       - name: Verify native Explorer menu title Unicode
         shell: pwsh
         run: |
