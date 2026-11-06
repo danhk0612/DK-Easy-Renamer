@@ -83,7 +83,7 @@ try {
     if (Test-Path -LiteralPath $exe) { throw 'Uninstaller retained application executable.' }
 
     # Task unchecked must not leave a menu on a fresh installation.
-    Invoke-Checked $installer[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/TASKS=!')
+    Invoke-Checked $installer[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-')
     Check-Removed
     Invoke-Checked $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     Check-Removed
