@@ -11,6 +11,9 @@
     <ApplicationIcon>..\..\assets\icons\DK-Easy-Renamer.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="..\\..\\assets\\icons\\DK-Easy-Renamer-256.png" Link="Assets\\DK-Easy-Renamer-256.png" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <ProjectReference Include="..\DK.EasyRenamer.Core\DK.EasyRenamer.Core.csproj" />
   </ItemGroup>

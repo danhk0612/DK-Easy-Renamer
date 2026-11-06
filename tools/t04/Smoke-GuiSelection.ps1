@@ -80,6 +80,12 @@ function Open-SelectionGui([string[]]$paths, [string]$quickMode = '') {
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
         throw 'The WPF-rendered top title is missing, incorrect or offscreen.'
     }
+    $icon = Find-AutomationId $gui 'VisibleWindowIcon'
+    if ($null -eq $icon -or $icon.Current.IsOffscreen -or
+        $icon.Current.BoundingRectangle.Width -lt 16 -or $icon.Current.BoundingRectangle.Height -lt 16) {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        throw 'The branded WPF titlebar icon is absent, offscreen or too small.'
+    }
     if ($null -eq $grid) {
         $names = Get-UiNames $gui
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue

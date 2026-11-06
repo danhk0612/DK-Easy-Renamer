@@ -18,7 +18,7 @@ Executor performs two-phase renames using unique temporary sibling paths: first 
 Successful actions produce an in-memory undo token, using the resulting fingerprints. Undo also revalidates destinations and cannot overwrite external changes. Tokens are one-use after successful undo, but not persisted across process restarts.
 
 ### Explicit current constraint
-Selecting an ancestor directory and an item inside it for simultaneous rename is **rejected**, not silently processed. Recursive enumeration/parent-child path dependency handling remains for subsequent design/review. Each selected directory itself may be renamed and its contents move with it unchanged.
+Selecting an ancestor directory and an item inside it for simultaneous rename is **rejected**, not silently processed. The folder-add menu can import only the selected directory, its immediate files, recursively enumerated files (skipping reparse points), or immediate child directories. It does not implicitly combine ancestor and descendant rename targets. Handling simultaneous parent/child renames remains unsupported. Each selected directory itself may be renamed and its contents move with it unchanged.
 
 ### Test policy
 All filesystem integration tests create unique temporary folders and clean them up. CI runs on Windows and executes fixture tests, but does not interact with actual Explorer, user's folders, network drives or GUI.

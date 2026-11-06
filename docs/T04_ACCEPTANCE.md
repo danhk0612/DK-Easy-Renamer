@@ -25,10 +25,12 @@ This creates a unique directory under %TEMP% with numeric filename samples, Unic
 
 | Case | Action on disposable fixtures | Expected outcome |
 |---|---|---|
-| 01 | Launch DK Easy Renamer | Branded app, icon, controls displayed |
+| 01 | Launch DK Easy Renamer | Branded app, **top-left titlebar icon**, controls displayed |
 | 02 | Right-click a single file in Explorer | Entry appears in Windows 11 *first-level* menu |
 | 03 | Right-click several selected files, including Hangul/Japanese | Exactly selected paths are passed to one GUI |
 | 04 | Right-click a folder | Folder itself is selected; children not separately renamed by default |
+| 04a | Click '폴더 추가 ▾' and choose each source mode | Parent folder only / immediate files / recursive files / direct child folders match the chosen mode; adding does not rename |
+| 04b | Add files recursively with junction/symlink child directories | Directory links are not traversed |
 | 05 | Natural-sort file1, file2, file10 | Order 1,2,10 |
 | 06 | Drag/reorder multiple rows and change a rule | Manual order remains stable |
 | 07 | Number from 7 by 2 with width 3 | Preview 007,009,011 in eligible user order |
