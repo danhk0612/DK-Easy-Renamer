@@ -6,8 +6,7 @@ namespace DK.EasyRenamer.App;
 
 public partial class MainWindow
 {
-    // Query-ShellState.ps1: 0 registered, 1 available, 2 cert unavailable,
-    // 3 conflicting registration, 4 failure.
+    // Query-ClassicShell.ps1: 0 registered, 1 available, 3 conflicting, 4 unavailable.
     private int _shellMenuState = 4;
 
     private async void OnShellMenuLoaded(object sender, RoutedEventArgs e) =>
@@ -19,7 +18,7 @@ public partial class MainWindow
         ShellMenuButton.Content = "우클릭 메뉴 확인 중";
         try
         {
-            _shellMenuState = await RunShellScriptAsync("Query-ShellState.ps1");
+            _shellMenuState = await RunShellScriptAsync("Query-ClassicShell.ps1");
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or
             System.ComponentModel.Win32Exception or OperationCanceledException)
@@ -31,17 +30,13 @@ public partial class MainWindow
         {
             case 0:
                 ShellMenuButton.Content = "우클릭 메뉴 해제";
-                ShellMenuButton.ToolTip = "현재 계정의 Windows 11 탐색기 메뉴 등록 해제";
+                ShellMenuButton.ToolTip = "현재 사용자 클래식 탐색기 메뉴 등록 해제";
                 ShellMenuButton.IsEnabled = true;
                 break;
             case 1:
                 ShellMenuButton.Content = "우클릭 메뉴 적용";
-                ShellMenuButton.ToolTip = "신뢰된 MSIX 패키지로 탐색기 메뉴 등록";
+                ShellMenuButton.ToolTip = "인증서 없이 클래식 탐색기 메뉴 등록 (Windows 11: 추가 옵션 표시)";
                 ShellMenuButton.IsEnabled = true;
-                break;
-            case 2:
-                ShellMenuButton.Content = "우클릭 메뉴 (인증서 필요)";
-                ShellMenuButton.ToolTip = "설치된 MSIX 인증서가 신뢰되지 않습니다. 인증서 처리 후 앱을 다시 실행하세요.";
                 break;
             case 3:
                 ShellMenuButton.Content = "우클릭 메뉴 (등록 충돌)";
@@ -74,7 +69,7 @@ public partial class MainWindow
         try
         {
             int result = await RunShellScriptAsync(
-                enabling ? "Register-Shell.ps1" : "Unregister-Shell.ps1");
+                enabling ? "Register-ClassicShell.ps1" : "Unregister-ClassicShell.ps1");
             if (result != 0)
             {
                 MessageBox.Show(this,
