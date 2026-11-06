@@ -54,6 +54,11 @@ jobs:
             [System.Management.Automation.Language.Parser]::ParseFile($source.FullName,[ref]$tokens,[ref]$errors) | Out-Null
             if ($errors.Count -gt 0) { throw "UX-07 script parse error in $($source.Name): $($errors[0])" }
           }
+          # Validate the unsigned release-preview helper before long build/package steps.
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('tools/release/Prepare-UnsignedAppOnlyPreview.ps1',[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw "Unsigned release-preview helper syntax error: $($errors[0])" }
           $created = ./tools/t04/New-TestFixtures.ps1
           $prefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
           if (-not $created.Root.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or
@@ -208,6 +213,15 @@ jobs:
           name: t05-UNSIGNED-APP-ONLY-TEST-ONLY
           path: artifacts/t05/installer/
           retention-days: 14
+      - name: Prepare unsigned APP-ONLY inspection bundle (NOT PUBLISHED)
+        shell: pwsh
+        run: ./tools/release/Prepare-UnsignedAppOnlyPreview.ps1
+      - name: Upload SignPath eligibility preview (NOT a GitHub Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: signpath-unsigned-app-only-preview-NOT-PUBLISHED
+          path: artifacts/signpath-prep/unsigned-app-only/
+          retention-days: 7
       - name: Build isolated developer-signed setup (NOT a public release)
         shell: pwsh
         run: |

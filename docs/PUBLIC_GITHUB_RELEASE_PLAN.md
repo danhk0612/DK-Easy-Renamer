@@ -4,7 +4,7 @@
 
 ## 최종 선택과 제약
 
-**1순위: [SignPath Foundation](https://signpath.org/) 무료 오픈소스 코드 서명 심사 신청**. SignPath.io의 서명 서비스를 통해 승인된 OSS 프로젝트의 EXE·DLL·MSIX 등을 서명한다. 단, 인증서 소유자와 Windows에 표시되는 **게시자 명의는 SignPath Foundation**이며 개인 명의 인증서가 아니다. 사용자가 **재단 명의 게시자를 허용하는지** 최종 확인해야 한다. GitHub 프로젝트 소유권과 이름은 변경되지 않는다.
+**1순위: [SignPath Foundation](https://signpath.org/) 무료 오픈소스 코드 서명 심사 신청**. SignPath.io의 서명 서비스를 통해 승인된 OSS 프로젝트의 EXE·DLL·MSIX 등을 서명한다. 인증서 소유자와 Windows에 표시되는 **게시자 명의는 SignPath Foundation**이며 개인 명의 인증서가 아니다. **사용자는 2026-11-06에 해당 게시자 명의 사용을 승인했다.** GitHub 프로젝트 소유권과 이름은 변경되지 않는다.
 
 - [공식 가입 및 자격 요건](https://signpath.org/terms.html): OSI 승인 오픈소스 라이선스, 자체 프로젝트·자체 소스, 지속 관리, 기능 문서화, **서명하려는 형태로 기존 공개 릴리스가 존재할 것**, 기여자 MFA, 코드 서명 정책, 수동 서명 승인 등이 요구된다. OSS와 제3자 재배포 파일에 대한 정책 심사는 공급자 재량이며 **승인 보장 없음**.
 - [SignPath 공식 서명 파일 형식](https://docs.signpath.io/artifact-configuration/reference): .exe/.dll (PE) 및 .msix 지원. **파일 형식 지원**과 **이 프로젝트의 Inno Setup + 외부 위치 sparse MSIX 일괄 서명이 가능한 승인된 구성**은 별개다. 정확한 artifact configuration·SignPath 인증서 Subject·설치 및 서명 순서는 승인 이후 결정한다.
@@ -17,7 +17,7 @@
 
 SignPath 자격 요건에는 이미 **서명할 형태의 공개 릴리스**가 필요하다. GitHub Actions의 임시 다운로드 아티팩트는 GitHub Release로 인정된다고 보장할 수 없고, 현재 공식 GitHub Release는 **0건**이다.
 
-1. **공개 전 내부 준비**: README 최신 안내, 실제 배포 파일 내 오픈소스 라이선스 고지, 테스트 APP-ONLY를 Release용으로 분리하는 설정, 설치·제거·SHA-256·변경 내역 확인. 사용자 별도 승인 없이 릴리스·태그를 만들지 않는다.
+1. **공개 전 내부 준비**: README 최신 안내, 실제 배포 파일 내 오픈소스 라이선스 고지, 서명 없는 APP-ONLY 후보를 **비공개 준비 아티팩트**로 분리해 설치·제거·SHA-256·변경 내역을 확인. [SignPath 자격 점검](SIGNPATH_ELIGIBILITY.md)과 [준비 스크립트](../tools/release/Prepare-UnsignedAppOnlyPreview.ps1)를 사용한다. 사용자 별도 승인 없이 릴리스·태그를 만들지 않는다.
 2. **서명 없는 초기 공개 검토**: **APP-ONLY Inno Setup EXE**만 공개하는 경우 탐색기 메뉴가 없고 SmartScreen 경고가 발생할 수 있음을 명시한다. 현재 TEST-ONLY 파일을 이름만 바꿔 공개하거나, 서명 검증을 우회하거나, 개발 자체 서명을 공식 인증서로 표시하지 않는다. *APP-ONLY만 공개한 이력이 전체 EXE+MSIX 패키지를 서명하려는 형태의 공개 릴리스 요건에 충분한지 SignPath에 문의해야 한다.* 사용자 승인 전 어떤 공개 배포도 금지한다.
 3. **공식 심사 신청**: [신청 페이지](https://signpath.org/apply.html)를 통해 공개 프로젝트·릴리스·[코드 서명 정책](CODE_SIGNING_POLICY.md), 공개 빌드 내역을 제시한다. 계정 등록/서약/MFA/신청 제출은 사용자가 수행해야 한다. 외부 기관 승인 전 서명 성공을 가정하지 않는다.
 4. **승인 후 서명 통합**: 실제 발급 인증서의 정확한 Subject와 정책·토큰을 확인한 뒤, MSIX manifest + embedded app manifest publisher 일치, 앱 EXE, 네이티브 DLL, MSIX, Inno Setup 및 uninstaller 서명 순서 확정. 현재 [Build-Distribution.ps1](../tools/t05/Build-Distribution.ps1)은 로컬 `Cert:\CurrentUser\My`의 **개인키 보유 인증서**로 SignTool/Inno Setup을 실행하는 방식이므로 SignPath 원격 서명에 **그대로 연결되지 않는다**. GitHub Actions 경유 signed artifact를 재패키징하는 적절한 단계 구성이 별도로 필요하다.
@@ -41,6 +41,6 @@ SignPath 자격 요건에는 이미 **서명할 형태의 공개 릴리스**가 
 
 ## 확인/승인 필요
 
-- **재단 명의 게시자 허용 여부**: "Windows에 SignPath Foundation으로 표시"를 수용하는지.
-- **서명 없는 APP-ONLY 초기 릴리스 승인 여부**: 실제 공개 범위, 버전, SmartScreen/메뉴 제한을 이해한 뒤 별도 결정.
+- **재단 명의 게시자**: **사용자 승인 완료 (2026-11-06)**. 정확한 서명 인증서 Subject·신뢰 체인은 SignPath 승인 이후 확인.
+- **서명 없는 APP-ONLY 초기 릴리스 승인 여부**: 실제 공개 범위, 버전, SmartScreen/메뉴 제한을 이해한 뒤 별도 결정. APP-ONLY 공개가 '서명하려는 형태' 조건을 충족하는지 재단의 확인을 먼저 받아야 한다.
 - **SignPath 가입·MFA·심사**: 외부 서비스 계정은 사용자 직접 연결·승인 필요.

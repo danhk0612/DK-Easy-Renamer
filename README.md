@@ -65,6 +65,7 @@ The GUI uses WPF-UI 4.3.0 (MIT). All user-facing renaming actions require a sepa
 - [Installer / distribution](docs/INSTALLER.md)
 - [Free GitHub Releases / SignPath Foundation candidate plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md)
 - [Code signing policy (proposed; not yet approved)](docs/CODE_SIGNING_POLICY.md)
+- [SignPath Foundation free OSS eligibility and first unsigned preview](docs/SIGNPATH_ELIGIBILITY.md)
 - [Release readiness audit](docs/RELEASE_READINESS_2026-11-06.md)
 - [Task plan](docs/TASKS.md)
 - [Contributor/agent instructions](AGENTS.md)
