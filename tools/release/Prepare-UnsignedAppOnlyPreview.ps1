@@ -17,7 +17,11 @@ if ($setups.Count -ne 1) {
     throw "Expected exactly one validated unsigned APP-ONLY setup; found $($setups.Count)."
 }
 $installer = $setups[0]
-$versionMatch = [regex]::Match($installer.Name, '^DK-Easy-Renamer-(\d+\.\d+\.\d+)-x64-APP-ONLY\.exe
+$versionMatch = [regex]::Match($installer.Name, '^DK-Easy-Renamer-(\d+\.\d+\.\d+)-x64-APP-ONLY\.exe$')
+if (-not $versionMatch.Success) {
+    throw 'Unexpected APP-ONLY installer name.'
+}
+$version = $versionMatch.Groups[1].Value
 $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
 if ($signature.Status -ne 'NotSigned' -or $null -ne $signature.SignerCertificate) {
     throw 'Unsigned preview requires an unsigned installer, not a signed or ambiguous setup.'
