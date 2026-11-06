@@ -24,15 +24,61 @@ public partial class MainWindow
         if (dialog.ShowDialog(this) == true) AddPaths(dialog.FileNames);
     }
 
-    private void OnAddFolder(object sender, RoutedEventArgs e)
+    private enum FolderAddMode
+    {
+        SelectedFolders,
+        ImmediateFiles,
+        RecursiveFiles,
+        ImmediateChildFolders
+    }
+
+    private void OnShowFolderAddMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.ContextMenu is null) return;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        button.ContextMenu.IsOpen = true;
+    }
+
+    private void OnAddSelectedFolders(object sender, RoutedEventArgs e) => AddFoldersFromPicker(FolderAddMode.SelectedFolders);
+    private void OnAddImmediateFolderFiles(object sender, RoutedEventArgs e) => AddFoldersFromPicker(FolderAddMode.ImmediateFiles);
+    private void OnAddRecursiveFolderFiles(object sender, RoutedEventArgs e) => AddFoldersFromPicker(FolderAddMode.RecursiveFiles);
+    private void OnAddImmediateChildFolders(object sender, RoutedEventArgs e) => AddFoldersFromPicker(FolderAddMode.ImmediateChildFolders);
+
+    private void AddFoldersFromPicker(FolderAddMode mode)
     {
         var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            Title = "이름을 변경할 폴더 선택 (폴더 자체만 대상)",
+            Title = "항목을 가져올 폴더 선택",
             Multiselect = true
         };
-        if (dialog.ShowDialog(this) == true)
-            AddPaths(dialog.FolderNames);
+        if (dialog.ShowDialog(this) != true) return;
+
+        try
+        {
+            // Resolve the full selection before updating the list. The parent folder
+            // is never mixed with its descendants in a single import operation:
+            // RenamePlanner intentionally rejects simultaneous ancestor/child renames.
+            var paths = dialog.FolderNames.SelectMany(folder => mode switch
+            {
+                FolderAddMode.SelectedFolders => new[] { folder },
+                FolderAddMode.ImmediateFiles => Directory.EnumerateFiles(folder, "*", SearchOption.TopDirectoryOnly),
+                FolderAddMode.RecursiveFiles => Directory.EnumerateFiles(folder, "*", new EnumerationOptions
+                {
+                    RecurseSubdirectories = true,
+                    AttributesToSkip = FileAttributes.ReparsePoint,
+                    IgnoreInaccessible = false
+                }),
+                FolderAddMode.ImmediateChildFolders => Directory.EnumerateDirectories(folder, "*", SearchOption.TopDirectoryOnly),
+                _ => Array.Empty<string>()
+            }).ToArray();
+
+            AddPaths(paths);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            DetailText.Text = "폴더의 항목을 읽지 못했습니다: " + ex.Message;
+        }
     }
 
     private void OnExternalDragOver(object sender, DragEventArgs e)
