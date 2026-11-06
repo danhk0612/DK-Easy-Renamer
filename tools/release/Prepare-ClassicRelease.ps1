@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $dir = (Resolve-Path -LiteralPath $InstallerDirectory).Path
-$fileName = 'DK-Easy-Renamer-0.2.0-x64-CLASSIC-UNSIGNED.exe'
+$fileName = 'DK-Easy-Renamer-0.2.0-x64-RELEASE.exe'
 $setup = Join-Path $dir $fileName
 if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw 'Expected public classic installer missing.' }
 if ((Get-AuthenticodeSignature -LiteralPath $setup).Status -ne 'NotSigned') {
