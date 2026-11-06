@@ -5,15 +5,48 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="DK Easy Renamer"
         Loaded="OnShellMenuLoaded"
-        SourceInitialized="OnWindowSourceInitialized" Width="1150" Height="750" MinWidth="870" MinHeight="580"
+        SourceInitialized="OnWindowSourceInitialized" StateChanged="OnWindowStateChanged" Width="1150" Height="750" MinWidth="870" MinHeight="580"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource TitleBrush}"
         FontFamily="Segoe UI" FontSize="13"
         AllowDrop="True" DragOver="OnExternalDragOver" Drop="OnExternalDrop">
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="36" GlassFrameThickness="0,36,0,0"
-                            ResizeBorderThickness="6" UseAeroCaptionButtons="True" />
+        <shell:WindowChrome CaptionHeight="36" GlassFrameThickness="0"
+                            ResizeBorderThickness="6" UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Style x:Key="CaptionActionButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="CaptionButtonBackground" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CaptionButtonBackground" Property="Background" Value="#2266AA" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="CaptionButtonBackground" Property="Background" Value="#174A80" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="Tag" Value="Close" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="CaptionButtonBackground" Property="Background" Value="#C42B1C" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Grid Background="{DynamicResource CanvasBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="36" />
@@ -31,6 +64,30 @@
                            Text="DK Easy Renamer" AutomationProperties.AutomationId="VisibleWindowCaption"
                            Foreground="White" FontSize="13" FontWeight="SemiBold"
                            VerticalAlignment="Center" Margin="44,0,160,0" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="MinimizeWindowButton" Click="OnMinimizeWindow"
+                            AutomationProperties.AutomationId="MinimizeWindowButton"
+                            AutomationProperties.Name="최소화"
+                            ToolTip="최소화" Style="{StaticResource CaptionActionButtonStyle}"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <TextBlock Text="&#xE921;" Foreground="White" FontFamily="Segoe MDL2 Assets" FontSize="11" />
+                    </Button>
+                    <Button x:Name="MaximizeWindowButton" Click="OnMaximizeWindow"
+                            AutomationProperties.AutomationId="MaximizeWindowButton"
+                            AutomationProperties.Name="최대화 / 복원"
+                            ToolTip="최대화 / 복원" Style="{StaticResource CaptionActionButtonStyle}"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <TextBlock x:Name="MaximizeWindowGlyph" Text="&#xE922;"
+                                   Foreground="White" FontFamily="Segoe MDL2 Assets" FontSize="11" />
+                    </Button>
+                    <Button x:Name="CloseWindowButton" Click="OnCloseWindow"
+                            AutomationProperties.AutomationId="CloseWindowButton"
+                            AutomationProperties.Name="닫기" Tag="Close"
+                            ToolTip="닫기" Style="{StaticResource CaptionActionButtonStyle}"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <TextBlock Text="&#xE8BB;" Foreground="White" FontFamily="Segoe MDL2 Assets" FontSize="11" />
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
         <Grid Grid.Row="1" Margin="23" Background="{DynamicResource CanvasBrush}">
@@ -122,8 +179,20 @@
                     </Grid>
                     <ListBox Grid.Row="3" x:Name="RulesList"
                              SelectionChanged="OnSelectedRuleChanged"
+                             PreviewMouseRightButtonDown="OnRulesRightButtonDown"
+                             ContextMenuOpening="OnRulesContextMenuOpening"
                              BorderBrush="{DynamicResource StrokeBrush}"
                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="규칙 활성화 / 비활성화" Click="OnToggleRuleFromMenu" />
+                                <Separator />
+                                <MenuItem Header="규칙 위로 이동" Click="OnRuleUp" />
+                                <MenuItem Header="규칙 아래로 이동" Click="OnRuleDown" />
+                                <Separator />
+                                <MenuItem Header="선택 규칙 제거" Click="OnRemoveRule" />
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel MinHeight="31">
@@ -234,8 +303,23 @@
                               IsReadOnly="False" RowHeight="39"
                               AlternationCount="2"
                               PreviewMouseLeftButtonDown="OnFilesPointerDown"
+                              PreviewMouseRightButtonDown="OnFilesRightButtonDown"
+                              ContextMenuOpening="OnFilesContextMenuOpening"
                               PreviewMouseMove="OnFilesPointerMove"
                               Drop="OnFilesDrop" DragOver="OnFilesDragOver" AllowDrop="True">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="선택 항목을 변경 대상에 포함" Click="OnIncludeSelectedFiles" />
+                                <MenuItem Header="선택 항목을 변경 대상에서 제외" Click="OnExcludeSelectedFiles" />
+                                <Separator />
+                                <MenuItem Header="선택 항목 위로 이동" Click="OnFileUp" />
+                                <MenuItem Header="선택 항목 아래로 이동" Click="OnFileDown" />
+                                <Separator />
+                                <MenuItem Header="선택 항목 목록에서 제거" Click="OnRemoveFiles" />
+                                <Separator />
+                                <MenuItem Header="전체 선택" Click="OnSelectAllFiles" />
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.Columns>
                             <DataGridCheckBoxColumn Header="변경" Binding="{Binding Included, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                      Width="55" />
