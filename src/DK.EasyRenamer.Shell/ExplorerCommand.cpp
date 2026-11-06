@@ -230,7 +230,9 @@ namespace
         HRESULT STDMETHODCALLTYPE GetFlags(EXPCMDFLAGS* value) override
         {
             if (!value) return E_POINTER;
-            *value = kind_ == CommandKind::QuickGroup ? ECF_HASSUBCOMMANDS : ECF_DEFAULT;
+            *value = kind_ == CommandKind::QuickGroup
+                ? static_cast<EXPCMDFLAGS>(ECF_HASSUBCOMMANDS | ECF_ISDROPDOWN)
+                : ECF_DEFAULT;
             return S_OK;
         }
         HRESULT STDMETHODCALLTYPE EnumSubCommands(IEnumExplorerCommand** commands) override;
