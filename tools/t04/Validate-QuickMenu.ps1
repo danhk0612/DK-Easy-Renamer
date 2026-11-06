@@ -7,8 +7,8 @@ Set-StrictMode -Version Latest
 $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path
 [xml]$xml = Get-Content -LiteralPath (Join-Path $root 'installer\shell\AppxManifest.xml') -Raw
 $classes = @($xml.SelectNodes('//*[local-name()="Class"]') | ForEach-Object { $_.GetAttribute('Id') })
-$expectedClsids = @('73F9A0E1-982D-4C4E-AB20-987DCA14E930')
-if ($classes.Count -ne 1) { throw 'Only the stable Explorer root COM class should be registered.' }
+$expectedClsids = @('73F9A0E1-982D-4C4E-AB20-987DCA14E930','F7BE1B68-314C-4F75-9F3E-7C3597B42AD1')
+if ($classes.Count -ne 2) { throw 'Exactly one file root and one folder root COM class should be registered.' }
 foreach ($clsid in $expectedClsids) {
     if ($classes -notcontains $clsid) { throw "Missing registered Explorer COM class $clsid" }
 }
@@ -17,8 +17,9 @@ foreach ($type in @('*','Directory')) {
     $element = @($types | Where-Object { $_.GetAttribute('Type') -eq $type })
     if ($element.Count -ne 1) { throw "Expected one Explorer ItemType $type" }
     $ids = @($element[0].SelectNodes('./*[local-name()="Verb"]') | ForEach-Object { $_.GetAttribute('Clsid') })
-    if ($ids.Count -ne 1 -or $ids[0] -ne $expectedClsids[0]) {
-        throw "Expected one Explorer flyout root verb for $type"
+    $expected = if ($type -eq '*') { $expectedClsids[0] } else { $expectedClsids[1] }
+    if ($ids.Count -ne 1 -or $ids[0] -ne $expected) {
+        throw "Expected one context-specific Explorer flyout root verb for $type"
     }
 }
 $dll = Join-Path $root 'artifacts\t01\native\DK.EasyRenamer.Shell.dll'
@@ -26,9 +27,12 @@ if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) { throw "Missing native D
 $hex = [Convert]::ToHexString([IO.File]::ReadAllBytes($dll))
 foreach ($label in @(
     'DK Easy Renamer',
-    '일반 이름 변경...',
-    '빠른 순번 변경...',
-    '빠른 찾기·바꾸기...'
+    '파일 이름 변경...',
+    '파일 빠른 순번 변경...',
+    '파일 빠른 찾기·바꾸기...',
+    '폴더 이름 변경...',
+    '폴더 빠른 순번 변경...',
+    '폴더 빠른 찾기·바꾸기...'
 )) {
     $expected = [Convert]::ToHexString([Text.Encoding]::Unicode.GetBytes($label + [char]0))
     if (-not $hex.Contains($expected)) { throw "Missing Korean UTF-16 title in compiled Explorer DLL: $label" }
@@ -45,4 +49,4 @@ foreach ($contract in @(
 )) {
     if (-not $source.Contains($contract)) { throw "Missing native flyout contract: $contract" }
 }
-Write-Host 'Quick menu contract PASS: one root verb per file/folder, 3 child actions and native labels.'
+Write-Host 'Context menu contract PASS: distinct file/folder COM roots, 3 child actions per root and correct Unicode labels.'
