@@ -1,102 +1,125 @@
 # DK Easy Renamer
 
-A focused Windows 11 batch file/folder renamer with precise ordering and GUI-driven rename rules.
+**파일과 폴더 이름을 한 번에 바꾸는 무료 Windows 프로그램**
 
-> **Status (2026-11-06):** Current tested application version: **0.1.2**. The Windows 11 GUI and three-action Explorer flyout were user-checked; file- versus folder-specific submenu labels were implemented in PR #47 and passed native COM CI, with additional manual testing explicitly skipped. Development-signed installers are **TEST-ONLY**, not public releases. GitHub Releases distribution is selected with a **zero-cost signing budget**. The primary candidate is SignPath Foundation's free OSS program (subject to approval; Windows publisher would be **SignPath Foundation**, not the individual developer); no public certificate has been approved or used yet. See the [public GitHub release plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md) and [draft code signing policy](docs/CODE_SIGNING_POLICY.md).
+여러 파일을 원하는 순서로 정렬하고, 번호를 붙이거나 문자를 바꾸는 등의 규칙을 적용할 수 있습니다. **실제로 변경하기 전에 결과를 미리 확인**할 수 있으며, 같은 실행 중에는 이름 변경을 되돌릴 수 있습니다.
 
-## Product goals
+- **Windows 10/11 · 64비트(x64)**
+- **완전 무료 · MIT 오픈소스 · 계정 불필요**
+- **오프라인 이름 변경** (사용자가 업데이트 확인을 누른 경우에만 GitHub 접속)
+- **Windows 11의 클래식 우클릭 메뉴 지원** — `추가 옵션 표시`에서 사용
 
-- Rename files and folders selected in Windows 11 File Explorer.
-- Arrange items by natural name, date, size, or manual drag/drop ordering, and apply numbering in exactly that order.
-- Compose rename rules with explicit GUI controls; regex is optional advanced functionality.
-- Preview the exact proposed changes, detect collisions, apply safely, and undo completed actions.
-- Use a Fluent-inspired visual system with primary accent `#2D7BC6`, light/dark themes and accessible controls.
-- Run locally without an account, backend or resident service.
+## 다운로드 및 설치
 
-## Technology baseline
+<https://github.com/danhk0612/DK-Easy-Renamer/releases/latest>
 
-- C# / .NET 10 LTS; WPF desktop app on Windows 11 x64.
-- WPF UI (Fluent) 4.3.0 is integrated into the T03 GUI.
-- Native `IExplorerCommand` COM extension with package identity for the modern Windows 11 context menu (T01 proof of concept).
-- MIT license. All external dependency licenses must be recorded before distribution.
+1. 최신 릴리스의 **`DK-Easy-Renamer-0.2.0-x64-CLASSIC-UNSIGNED.exe`** 설치 파일을 내려받습니다.
+2. Windows 설치 마법사에서 설치합니다. 파일 탐색기 우클릭 메뉴를 사용하려면 **'클래식 탐색기 우클릭 메뉴 등록'** 옵션을 선택합니다.
+3. 시작 메뉴에서 **DK Easy Renamer**를 실행합니다.
 
-## Implemented Core (T02)
+> **서명 안내:** 이 프로그램은 무료 배포를 위해 **코드 서명 인증서 없이** 제공됩니다. Windows에서 알 수 없는 게시자 또는 Microsoft Defender SmartScreen 경고가 표시될 수 있습니다. 이는 코드 서명을 받지 않았기 때문이며, 자동으로 안전하다는 뜻은 아닙니다. 반드시 위 공식 GitHub Releases 주소에서 내려받고 릴리스의 SHA-256을 확인하세요. 인증서를 따로 설치하거나 Windows 보안 설정을 끌 필요가 없습니다.
+>
+> **Windows 11에서 바로 보이는 새 우클릭 메뉴는 지원하지 않습니다.** `추가 옵션 표시`(또는 Shift+F10) 안의 **클래식 메뉴**를 사용합니다. Windows 10은 기존 우클릭 메뉴를 사용합니다.
 
-- Rename rules, natural sorting, deterministic preview, collision avoidance, two-phase rename and same-session undo.
-- Unit and disposable-directory filesystem tests: **19/19** in [Windows CI run #14](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41590420863).
-- The Core engine is wired to the WPF rule editor, live preview, apply and undo UI. Nested directory plus its child in one batch is rejected for safety; see [engine design](docs/RENAME_ENGINE.md).
-- Physical Windows 11 integration acceptance is deferred to T04, not waived.
+## 주요 기능
 
-## Test on Windows 11 from Git (test artifacts, not a public release)
+| 기능 | 사용 방법 |
+|---|---|
+| 여러 파일/폴더 가져오기 | 탐색기에서 파일·폴더 선택 또는 프로그램에서 추가 |
+| 순서 정하기 | 자연 이름순·날짜·크기 등으로 정렬하거나 직접 순서 조정 |
+| 일괄 이름 변경 | 순번, 문자 찾기/바꾸기 등 여러 규칙 조합 |
+| 미리보기 | 적용 전 변경할 이름과 충돌 여부 확인 |
+| 실행·되돌리기 | 확인 후 적용, 같은 실행에서 가능한 변경 취소 |
+| 빠른 작업 | 탐색기 클래식 메뉴에서 '빠른 순번 변경' 또는 '빠른 찾기·바꾸기' 열기 |
+| 한국어 UI | 파일명에 한국어·일본어 등 유니코드 사용 가능 |
 
-The current [Windows 11 test kit](docs/WINDOWS11_TEST_KIT.md) describes both an **APP-ONLY** installer with no test-certificate requirement, and a separate **development-signed Explorer** installer. From an updated main checkout with authenticated GitHub CLI:
+실제 파일 이름을 바꾸기 전에는 **미리보기와 확인 단계**를 거칩니다. 폴더 메뉴는 선택한 **폴더 자체**의 이름을 바꾸며, 내부 파일을 자동으로 재귀 처리하지 않습니다.
+
+### 사용 순서
+
+1. 파일이나 폴더를 추가합니다.
+2. 파일 목록을 원하는 순서로 정렬합니다.
+3. 이름 변경 규칙을 설정합니다.
+4. **미리보기**에서 변경 전/후 이름과 충돌을 확인합니다.
+5. **적용**을 누르고 작업을 확인합니다.
+
+### 탐색기에서 빠르게 열기
+
+**Windows 11:** 파일 또는 폴더를 선택하고 마우스 오른쪽 버튼 → **추가 옵션 표시** → **DK Easy Renamer**.
+
+**Windows 10:** 파일 또는 폴더를 선택하고 마우스 오른쪽 버튼 → **DK Easy Renamer**.
+
+| 파일을 선택했을 때 | 폴더를 선택했을 때 |
+|---|---|
+| 파일 이름 변경... | 폴더 이름 변경... |
+| 파일 빠른 순번 변경... | 폴더 빠른 순번 변경... |
+| 파일 빠른 찾기·바꾸기... | 폴더 빠른 찾기·바꾸기... |
+
+메뉴를 누르면 프로그램이 열립니다. **우클릭만으로 파일 이름이 즉시 바뀌지는 않습니다.**
+
+## 우클릭 메뉴 추가·해제
+
+설치 단계에서 메뉴 옵션을 선택하지 않았더라도 **프로그램 안의 '우클릭 메뉴 적용'** 버튼으로 등록할 수 있습니다. 더 이상 필요하지 않으면 **'우클릭 메뉴 해제'** 버튼으로 제거하세요.
+
+이 메뉴는 **현재 Windows 사용자**에만 등록되며, 별도의 관리자 권한이나 인증서 설치를 요구하지 않습니다. Windows 11의 전체 우클릭 표시 방식을 바꾸지는 않습니다.
+
+## 업데이트 및 삭제
+
+- **업데이트:** 프로그램에서 **'업데이트 확인'**을 누르거나 [GitHub Releases](https://github.com/danhk0612/DK-Easy-Renamer/releases)를 확인하세요. 이 서명 없는 버전에서는 업데이트 설치를 자동 실행하지 않으며, 새 설치본을 직접 내려받아 설치합니다.
+- **삭제:** Windows **설정 → 앱 → 설치된 앱 → DK Easy Renamer → 제거**. 설치 과정에서 등록한 클래식 우클릭 메뉴도 함께 제거합니다.
+- **설정/되돌리기:** 되돌리기는 영구 백업이 아닙니다. 다른 프로그램에서 파일을 변경했거나 앱을 종료한 뒤에는 되돌리기를 보장하지 않습니다.
+
+## 자주 묻는 질문
+
+**Q. 왜 Windows 11 우클릭 첫 화면에는 나오지 않나요?**
+
+인증서 비용 없이 배포하기 위해 클래식 메뉴 방식을 사용합니다. Windows 11에서는 '추가 옵션 표시' 안에 나타납니다.
+
+**Q. 인증서를 신뢰할 수 있는 인증 기관에 수동 등록해야 하나요?**
+
+**아니요.** 이 버전에는 MSIX 우클릭 확장과 개발용 인증서가 포함되지 않습니다. 별도 인증서 등록은 필요하지 않습니다.
+
+**Q. 설치 시 SmartScreen이 경고합니다.**
+
+프로그램이 코드 서명되지 않아 표시될 수 있습니다. 원본 파일을 공식 GitHub에서 받았는지 확인하고, 배포된 SHA-256과 일치하는지 확인하세요. Windows 보안 기능을 비활성화하도록 요구하지 않습니다.
+
+**Q. 파일 내용도 바뀌나요?**
+
+이 프로그램의 목적은 파일/폴더의 **이름 변경**입니다. 편집기처럼 파일 내용을 수정하지 않습니다.
+
+**Q. 여러 파일을 선택해 우클릭해도 되나요?**
+
+클래식 메뉴 확장은 선택한 파일/폴더 목록을 네이티브 COM 명령으로 받아 프로그램에 전달합니다. OS/탐색기 환경에 따라 실제 메뉴 노출은 달라질 수 있습니다.
+
+## 보안·개인정보
+
+파일과 폴더 이름 변경은 로컬 컴퓨터에서 수행합니다. 계정 생성·서버 업로드·상시 백그라운드 서비스는 없습니다. **'업데이트 확인'**을 누르면 GitHub Releases에 접속하므로 일반적인 네트워크 접속 정보가 GitHub에 전달될 수 있습니다.
+
+## 문제 신고
+
+버그·개선 제안: <https://github.com/danhk0612/DK-Easy-Renamer/issues>
+
+문제를 제보할 때는 Windows 버전, 실행한 작업, 오류 메시지를 알려주세요. 개인 파일 이름이나 경로에 민감한 정보가 있다면 제거한 뒤 올려주세요.
+
+## 개발자 안내
+
+이 프로젝트는 C# / .NET 10 / WPF, WPF UI 및 Windows 네이티브 `IExplorerCommand`(클래식 COM 등록)을 사용합니다. 전체 소스와 빌드 절차는 공개되어 있습니다.
 
 ```powershell
-git checkout main
-git pull --ff-only
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t04\Get-Windows11TestBuild.ps1 -Mode AppOnly
-```
-
-Use `-Mode Explorer` only in a disposable Windows 11 VM after reviewing and explicitly trusting the matching public development certificate. The script verifies the exact Git commit, successful CI, artifact hash and signer (when signed), but **never installs or modifies certificate trust**. Test artifacts are not production installers. Completed user checks and the last untested version of the file/folder-specific menu labels are tracked in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).
-
-## Local development
-
-On Windows 11 with the .NET 10 SDK and PowerShell, generate the original app icon before building:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\t03\Generate-Icon.ps1
 dotnet restore .\DK-Easy-Renamer.sln
-dotnet build .\DK-Easy-Renamer.sln -c Release --no-restore
+dotnet build .\DK-Easy-Renamer.sln -c Release
 dotnet test .\DK-Easy-Renamer.sln -c Release --no-build
-dotnet run --project .\src\DK.EasyRenamer.App\DK.EasyRenamer.App.csproj
 ```
 
-The GUI uses WPF-UI 4.3.0 (MIT). All user-facing renaming actions require a separate confirmation. The CI pipeline builds/tests on a Windows x64 runner. For local shell extension tests and install/uninstall verification see `docs/SHELL_INTEGRATION.md` (T01 onward).
+클래식 설치본은 Inno Setup 6과 Windows SDK C++ 빌드 도구로 DLL을 빌드한 뒤 아래 명령으로 생성합니다.
 
-## Documents
+```powershell
+.\tools\t05\Build-Distribution.ps1 -Version 0.2.0 -Classic
+.\tools\t05\Validate-Distribution.ps1 -ExpectedMode Classic
+```
 
-- [Requirements](docs/REQUIREMENTS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Design system](docs/DESIGN_SYSTEM.md)
-- [Shell integration](docs/SHELL_INTEGRATION.md)
-- [Test plan](docs/TEST_PLAN.md)
-- [Rename engine](docs/RENAME_ENGINE.md)
-- [GUI design and implementation](docs/UI_IMPLEMENTATION.md)
-- [Installer / distribution](docs/INSTALLER.md)
-- [Free GitHub Releases / SignPath Foundation candidate plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md)
-- [Code signing policy (proposed; not yet approved)](docs/CODE_SIGNING_POLICY.md)
-- [SignPath Foundation free OSS eligibility and first unsigned preview](docs/SIGNPATH_ELIGIBILITY.md)
-- [Release readiness audit](docs/RELEASE_READINESS_2026-11-06.md)
-- [Task plan](docs/TASKS.md)
-- [Contributor/agent instructions](AGENTS.md)
+개발용 MSIX 서명 테스트 절차는 예전 개발 기록으로만 유지합니다. **공개 배포 파일에는 자체 서명 인증서 및 MSIX가 포함되지 않습니다.**
 
-## Windows installer candidate
-
-A self-contained Windows 11 x64 setup can be compiled after the native C++ build using `tools/t05/Build-Distribution.ps1` (Inno Setup 6 required). CI creates both a blocked `UNSIGNED-DO-NOT-INSTALL` candidate and a separate **test-only `SIGNED-PROBE`** installer with a public development certificate (private signing key never uploaded). Neither is a public release; see [T05 CI #30](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41597002092). For the signing contract, per-user registration, hashes and final verification see [the installer guide](docs/INSTALLER.md).
-
-## License
-
-MIT — see [LICENSE](LICENSE).
-
-### Historical T04 visual fixes (test build 0.1.1)
-
-The sparse MSIX taskbar logo and native WPF window caption now match the original document/pencil branding: no temporary `DK` logo, and `DK Easy Renamer` title displayed with white text on a blue native title bar. See the [T04 implementation PR](https://github.com/danhk0612/DK-Easy-Renamer/pull/6) and [Windows 11 acceptance checklist](https://github.com/danhk0612/DK-Easy-Renamer/issues/7). The branding was subsequently user-checked on Windows 11. This subsection documents the older 0.1.1 test build, not the current release candidate.
-
-**0.1.1 automated verification:** [Windows CI + signed install/uninstall smoke](https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/41753265249) passed. Windows 11 visual and rename/Undo user feedback is recorded in [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7).
-
-
-### UX-00/UX-01/UX-07 test build (0.1.2)
-
-- The Windows 11 Explorer right-click integration exposes **one DK Easy Renamer flyout** with rename, quick sequence, and quick find/replace commands. As of PR #47, the three labels are separately tailored to files versus folders. WPF still previews and requires confirmation.
-- Users can manually check for new public stable GitHub Releases via the in-app **업데이트 확인** button. Verified download/install code exists, but **public in-app installation stays disabled** until an approved publisher and signed release; see issue #10.
-- Application and installer versions are both raised to **0.1.2** for accurate MSIX sparse identity upgrade validation.
-- Windows Server 2025 **PR CI** checks launch, quick-mode handoff, package registration, uninstall and upgrade. Main push CI builds packages but skips PR-only Windows Server install jobs. Windows 11 previous flyout/UI functions were user-checked; latest file/folder-specific menu labels were auto-checked only.
-- Use a manually dispatched GitHub workflow with stable_dev_signing=true to obtain a test installer signed with the existing persistent development certificate. Ordinary PR certificates rotate.
-
-### UX-07 safety and public-release status (2026-11-06)
-
-- PRs #19–#22 implement guarded official Release download, SHA-256 and pinned Authenticode verification, explicit install approval, single-use installer handoff/cleanup, and CI-only signed test-fixture regression checks.
-- PRs #23–#25 guard mismatched MSIX publishers and provide read-only pre-migration diagnostics. A publisher switch changes package identity and is **not** automatically migrated or removed.
-- PRs #26–#27 provide separate, opt-in local-data snapshot and old signed EXE/MSIX archive rehearsal tools. They do **not** install, unregister, migrate, or roll back a live application.
-- Remaining **public-release** gates: obtain an approved individual CA signing identity; sign aligned EXE/DLL/MSIX/Setup packages; verify actual public-signature Windows 11 install, uninstall, upgrade, publisher migration and recovery. Existing dev-signed GUI/Explorer checks do not waive those gates. See [issue #10](https://github.com/danhk0612/DK-Easy-Renamer/issues/10), [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7), [public release plan](docs/PUBLIC_GITHUB_RELEASE_PLAN.md), and [rollback archive guide](docs/UX07_SIGNED_ROLLBACK_ARCHIVE.md).
-- No public Release or tag is authorized by automated CI success alone.
+- [MIT 라이선스](LICENSE)
+- [제3자 라이선스](THIRD_PARTY_LICENSES.md)
+- [전체 문서](docs/)
