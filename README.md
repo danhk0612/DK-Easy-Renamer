@@ -13,9 +13,17 @@
 
 <https://github.com/danhk0612/DK-Easy-Renamer/releases/latest>
 
-1. 최신 릴리스의 **`DK-Easy-Renamer-0.2.0-x64-CLASSIC-UNSIGNED.exe`** 설치 파일을 내려받습니다.
+1. 최신 릴리스의 **`DK-Easy-Renamer-0.2.0-x64-RELEASE.exe`** 설치 파일을 내려받습니다.
 2. Windows 설치 마법사에서 설치합니다. 파일 탐색기 우클릭 메뉴를 사용하려면 **'클래식 탐색기 우클릭 메뉴 등록'** 옵션을 선택합니다.
 3. 시작 메뉴에서 **DK Easy Renamer**를 실행합니다.
+
+**파일 해시 확인 (PowerShell)**
+
+다운로드한 설치 파일과 같은 폴더에서 실행하고, 출력된 SHA-256 값을 릴리스 페이지의 `SHA256SUMS.txt`와 비교하세요.
+
+```powershell
+Get-FileHash .\DK-Easy-Renamer-0.2.0-x64-RELEASE.exe -Algorithm SHA256
+```
 
 > **서명 안내:** 이 프로그램은 무료 배포를 위해 **코드 서명 인증서 없이** 제공됩니다. Windows에서 알 수 없는 게시자 또는 Microsoft Defender SmartScreen 경고가 표시될 수 있습니다. 이는 코드 서명을 받지 않았기 때문이며, 자동으로 안전하다는 뜻은 아닙니다. 반드시 위 공식 GitHub Releases 주소에서 내려받고 릴리스의 SHA-256을 확인하세요. 인증서를 따로 설치하거나 Windows 보안 설정을 끌 필요가 없습니다.
 >
