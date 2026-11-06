@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private string? _ruleInputError;
     private bool _initializing = true;
     private bool _justApplied;
+    private bool _batchUpdatingIncluded;
     private readonly List<(FileRow Row, string Original)> _lastPathChanges = [];
     private Point _dragStart;
     private FileRow? _dragSource;
@@ -161,7 +162,7 @@ public partial class MainWindow : Window
 
     private void OnRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(FileRow.Included))
+        if (e.PropertyName == nameof(FileRow.Included) && !_batchUpdatingIncluded)
         {
             _justApplied = false;
             RefreshPreview();
@@ -220,6 +221,26 @@ public partial class MainWindow : Window
         if (to < 0 || to >= _rules.Count) return;
         _rules.Move(from, to);
         RulesList.SelectedItem = item;
+        _justApplied = false;
+        RefreshPreview();
+    }
+
+    private void OnRulesRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject source &&
+            ItemsControl.ContainerFromElement(RulesList, source) is ListBoxItem row)
+            RulesList.SelectedItem = row.DataContext;
+    }
+
+    private void OnRulesContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (RulesList.SelectedItem is null) e.Handled = true;
+    }
+
+    private void OnToggleRuleFromMenu(object sender, RoutedEventArgs e)
+    {
+        if (RulesList.SelectedItem is not RuleEditorItem rule) return;
+        rule.Enabled = !rule.Enabled;
         _justApplied = false;
         RefreshPreview();
     }
