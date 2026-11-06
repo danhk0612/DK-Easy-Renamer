@@ -151,12 +151,13 @@ jobs:
         shell: pwsh
         run: |
           $binary = [IO.File]::ReadAllBytes('artifacts/t01/native/DK.EasyRenamer.Shell.dll')
-          $expectedTitle = 'DK Easy Renamer로 이름 변경'
-          $expected = [Text.Encoding]::Unicode.GetBytes($expectedTitle + [char]0)
-          if (-not [Convert]::ToHexString($binary).Contains([Convert]::ToHexString($expected))) {
-            throw "Native COM DLL does not contain the expected UTF-16 Korean menu title: $expectedTitle"
+          foreach ($expectedTitle in @('DK Easy Renamer','일반 이름 변경...','빠른 순번 변경...','빠른 찾기·바꾸기...')) {
+            $expected = [Text.Encoding]::Unicode.GetBytes($expectedTitle + [char]0)
+            if (-not [Convert]::ToHexString($binary).Contains([Convert]::ToHexString($expected))) {
+              throw "Native COM DLL does not contain the expected UTF-16 menu title: $expectedTitle"
+            }
           }
-          Write-Host "Verified native Explorer menu title: $expectedTitle"
+          Write-Host 'Verified Explorer flyout root and all three Unicode child labels.'
       - name: Verify Explorer quick-action registration and Unicode labels
         shell: pwsh
         run: ./tools/t04/Validate-QuickMenu.ps1
