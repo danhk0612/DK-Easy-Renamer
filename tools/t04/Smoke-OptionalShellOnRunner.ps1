@@ -137,6 +137,16 @@ try {
     # on a real Windows installation.
     Import-Certificate -FilePath $cer -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' -ErrorAction Stop | Out-Null
 
+    # Reproduce the actual installer fallback when PowerShell 7 is absent.
+    # A trusted signed MSIX must pass the same preflight in Windows PowerShell 5.1.
+    $winPowerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $preflight = Join-Path $PSScriptRoot '..\..\installer\windows\Preflight-Shell.ps1'
+    $nativePreflightOutput = & $winPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $preflight -PackagePath $package 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw ('Trusted MSIX preflight failed under Windows PowerShell 5.1: ' + ($nativePreflightOutput | Out-String))
+    }
+    Write-Host 'PASS: trusted Explorer MSIX preflight under Windows PowerShell 5.1.'
+
     Write-Host 'PHASE 2: signed installer, unchecked menu => application only'
     Invoke-Executable $setup[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     Assert-AppInstalledWithoutShell
