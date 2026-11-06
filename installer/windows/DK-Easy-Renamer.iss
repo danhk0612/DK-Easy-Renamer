@@ -24,7 +24,11 @@ DefaultGroupName=DK Easy Renamer
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64os
 ArchitecturesInstallIn64BitMode=x64os
+#ifdef ClassicBuild
+MinVersion=10.0.19041
+#else
 MinVersion=10.0.22000
+#endif
 UsePreviousAppDir=yes
 OutputDir={#PackageDir}\installer
 OutputBaseFilename=DK-Easy-Renamer-{#ProductVersion}-x64-{#BuildFlavor}
@@ -43,21 +47,31 @@ RestartApplications=no
 DisableProgramGroupPage=yes
 
 [Tasks]
+#ifdef ClassicBuild
+Name: classicmenu; Description: "클래식 탐색기 우클릭 메뉴 등록 (Windows 11은 '추가 옵션 표시')"; Flags: unchecked
+#else
 Name: shellmenu; Description: "Windows 11 탐색기 우클릭 메뉴 등록"; Flags: unchecked
+#endif
 
 [Files]
+Source: "{#PackageDir}\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+#ifndef ClassicBuild
 ;; The certificate is checked only for the optional modern context menu.
 ;; An untrusted package must not block the standalone application installer.
 Source: "{#SourcePath}\Preflight-Shell.ps1"; Flags: dontcopy noencryption
 Source: "{#SourcePath}\Test-ShellPublisherTransition.ps1"; Flags: dontcopy noencryption
 Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; Flags: dontcopy noencryption
-Source: "{#PackageDir}\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PackageDir}\DKEasyRenamer.Shell.msix"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Preflight-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Test-ShellPublisherTransition.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Query-ShellState.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Register-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\Unregister-Shell.ps1"; DestDir: "{app}"; Flags: ignoreversion
+#else
+Source: "{#SourcePath}\Query-ClassicShell.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}\Register-ClassicShell.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}\Unregister-ClassicShell.ps1"; DestDir: "{app}"; Flags: ignoreversion
+#endif
 Source: "{#SourcePath}\..\..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\..\..\THIRD_PARTY_LICENSES.md"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -76,11 +90,13 @@ end;
 
 #ifndef SignedBuild
   #ifndef AppOnlyBuild
+#ifndef ClassicBuild
 function InitializeSetup(): Boolean;
 begin
   MsgBox('This is an unsigned CI packaging candidate. It cannot register the Explorer extension. Obtain a trusted signed build for installation.', mbCriticalError, MB_OK);
   Result := False;
 end;
+  #endif
   #endif
 #endif
 
@@ -143,6 +159,7 @@ end;
 #endif
 
 #ifndef SignedBuild
+#ifndef ClassicBuild
 procedure CurPageChanged(CurPageID: Integer);
 var
   Index: Integer;
@@ -165,6 +182,7 @@ begin
     Result := 'An unsigned application-only build cannot register the Windows 11 Explorer menu.';
 end;
 #endif
+#endif
 
 function RunPowerShell(ScriptName: String): Boolean;
 var
@@ -179,6 +197,53 @@ begin
     Result := ExitCode = 0;
 end;
 
+#ifdef ClassicBuild
+function IsClassicShellOwned(): Boolean;
+var
+  Mode: String;
+begin
+  Result := RegQueryStringValue(HKCU, 'Software\DKEasyRenamer', 'ShellMode', Mode)
+    and (Mode = 'Classic');
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssInstall then
+  begin
+    // Previous signed MSIX builds used this same installer AppId.
+    // Remove only a proven owned legacy package before replacing its scripts.
+    if RegKeyExists(HKCU, 'Software\DKEasyRenamer') and not IsClassicShellOwned() then
+    begin
+      if not FileExists(ExpandConstant('{app}\Unregister-Shell.ps1')) then
+        RaiseException('Legacy Explorer registration detected without its safe uninstaller. Unregister the old signed test package first.');
+      if not RunPowerShell('Unregister-Shell.ps1') then
+        RaiseException('Legacy Explorer MSIX could not be safely removed; installation stopped.');
+    end;
+  end;
+  if CurStep = ssPostInstall then
+  begin
+    if WizardIsTaskSelected('classicmenu') then
+    begin
+      if not RunPowerShell('Register-ClassicShell.ps1') then
+        RaiseException('Classic Explorer menu registration failed. Check installation and ownership.');
+    end
+    else if IsClassicShellOwned() then
+    begin
+      if not RunPowerShell('Unregister-ClassicShell.ps1') then
+        RaiseException('Classic Explorer menu could not be safely removed.');
+    end;
+  end;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if (CurUninstallStep = usUninstall) and IsClassicShellOwned() then
+  begin
+    if not RunPowerShell('Unregister-ClassicShell.ps1') then
+      RaiseException('Classic Explorer menu removal failed; uninstall stopped.');
+  end;
+end;
+#else
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
@@ -214,3 +279,5 @@ begin
     end;
   end;
 end;
+
+#endif

@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [ValidateSet('Unsigned','Signed','AppOnly')][string]$ExpectedMode = 'Unsigned'
+    [ValidateSet('Unsigned','Signed','AppOnly','Classic')][string]$ExpectedMode = 'Unsigned'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -43,7 +43,7 @@ foreach ($logo in @('Square44x44Logo.png','Square150x150Logo.png','StoreLogo.png
 [xml]$sourceSxs = Get-Content (Join-Path $identity 'app.manifest') -Raw
 $pkg = $sparse.SelectSingleNode('/*[local-name()="Package"]/*[local-name()="Identity"]')
 $sxsSource = $sourceSxs.SelectSingleNode('//*[local-name()="msix"]')
-if (-not $pkg -or -not $sxsSource) { throw 'Incomplete package/executable identity XML.' }
+if (-not $pkg -or ($ExpectedMode -ne 'Classic' -and -not $sxsSource)) { throw 'Incomplete package/executable identity XML.' }
 
 # Extract the actual application manifest embedded in the compiled EXE.
 $sdk = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Windows Kits\10\bin'
@@ -58,13 +58,16 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $extracted)) {
 }
 [xml]$actualSxs = Get-Content -LiteralPath $extracted -Raw
 $sxs = $actualSxs.SelectSingleNode('//*[local-name()="msix"]')
-if (-not $sxs) { throw 'Compiled EXE is missing its sparse MSIX identity.' }
-
-foreach ($value in @($sxsSource,$sxs)) {
-    if ($pkg.GetAttribute('Name') -ne $value.GetAttribute('packageName') -or
-        $pkg.GetAttribute('Publisher') -ne $value.GetAttribute('publisher') -or
-        $value.GetAttribute('applicationId') -ne 'App') {
-        throw 'Actual embedded executable and sparse package identities differ.'
+if ($ExpectedMode -eq 'Classic') {
+    if ($sxs -or $sxsSource) { throw 'Classic release must not embed development MSIX identity.' }
+} else {
+    if (-not $sxs) { throw 'Compiled EXE is missing its sparse MSIX identity.' }
+    foreach ($value in @($sxsSource,$sxs)) {
+        if ($pkg.GetAttribute('Name') -ne $value.GetAttribute('packageName') -or
+            $pkg.GetAttribute('Publisher') -ne $value.GetAttribute('publisher') -or
+            $value.GetAttribute('applicationId') -ne 'App') {
+            throw 'Actual embedded executable and sparse package identities differ.'
+        }
     }
 }
 
@@ -96,6 +99,9 @@ foreach ($script in @(
     'installer\windows\Preflight-Shell.ps1',
     'installer\windows\Test-ShellPublisherTransition.ps1',
     'installer\windows\Unregister-Shell.ps1',
+    'installer\windows\Query-ClassicShell.ps1',
+    'installer\windows\Register-ClassicShell.ps1',
+    'installer\windows\Unregister-ClassicShell.ps1',
     'tools\ux07\Validate-PublicInstaller.ps1',
     'tools\ux07\Invoke-VerifiedUpdate.ps1',
     'tools\t05\Build-Distribution.ps1'
@@ -110,16 +116,18 @@ $setup = @(Get-ChildItem -LiteralPath $installerDir -Filter 'DK-Easy-Renamer-*-x
 if ($setup.Count -ne 1) { throw "Expected exactly one compiled installer, found $($setup.Count)." }
 $expectedSuffix = if ($ExpectedMode -eq 'Unsigned') { '-UNSIGNED-DO-NOT-INSTALL.exe' }
     elseif ($ExpectedMode -eq 'AppOnly') { '-APP-ONLY.exe' }
+    elseif ($ExpectedMode -eq 'Classic') { '-RELEASE.exe' }
     else { '-SIGNED-PROBE.exe' }
 if (-not $setup[0].Name.EndsWith($expectedSuffix,[StringComparison]::Ordinal)) {
     throw "Installer has the wrong safety mode label: $($setup[0].Name)"
 }
 $sums = @(Get-Content -LiteralPath (Join-Path $installerDir 'SHA256SUMS.txt') | Where-Object { $_.Trim() })
-foreach ($file in @($setup[0].FullName,$msix)) {
+$checksummed = if ($ExpectedMode -eq 'Classic') { @($setup[0].FullName) } else { @($setup[0].FullName,$msix) }
+foreach ($file in $checksummed) {
     $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
     $line = "$hash *$([IO.Path]::GetFileName($file))"
     if ($sums -notcontains $line) { throw "SHA-256 mismatch for $file" }
 }
 Write-Host "T05 package verified: $($setup[0].Name); package identity $($pkg.GetAttribute('Name')) / $($pkg.GetAttribute('Version'))"
-Write-Host 'Actual EXE identity, packed MSIX XML, signature presence and SHA-256 all checked.'
+Write-Host 'Actual EXE identity, packed MSIX XML (developer modes), signature presence and SHA-256 all checked.'
 Write-Host 'Physical installation, Explorer menu, upgrades and uninstall are still UNVERIFIED.'
