@@ -8,7 +8,7 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows' -or
     throw 'This integration test only runs on disposable Windows GitHub Actions runners.'
 }
 $folder = (Resolve-Path -LiteralPath $ArtifactFolder).Path
-$installer = @(Get-ChildItem -LiteralPath $folder -Filter 'DK-Easy-Renamer-*-x64-CLASSIC-UNSIGNED.exe' -File)
+$installer = @(Get-ChildItem -LiteralPath $folder -Filter 'DK-Easy-Renamer-*-x64-RELEASE.exe' -File)
 if ($installer.Count -ne 1) { throw 'Expected one classic unsigned installer.' }
 if ((Get-AuthenticodeSignature -LiteralPath $installer[0].FullName).Status -ne 'NotSigned') {
     throw 'Classic distribution must remain unsigned.'
