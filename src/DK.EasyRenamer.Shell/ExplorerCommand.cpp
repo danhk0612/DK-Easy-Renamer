@@ -13,11 +13,22 @@ namespace
         {0x73f9a0e1, 0x982d, 0x4c4e, {0xab, 0x20, 0x98, 0x7d, 0xca, 0x14, 0xe9, 0x30}};
     constexpr CLSID QuickGroupClsid =
         {0xa01d3977, 0x7390, 0x4e7a, {0xab, 0x4e, 0x14, 0x6a, 0x28, 0xb7, 0x1f, 0x9c}};
+    // Separate registered root keeps menu behavior deterministic even when
+    // Explorer requests child command titles without an IShellItemArray.
+    constexpr CLSID FolderCommandClsid =
+        {0xf7be1b68, 0x314c, 0x4f75, {0x9f, 0x3e, 0x7c, 0x35, 0x97, 0xb4, 0x2a, 0xd1}};
+    constexpr GUID FolderEditorGuid =
+        {0xf7be1b69, 0x314c, 0x4f75, {0x9f, 0x3e, 0x7c, 0x35, 0x97, 0xb4, 0x2a, 0xd1}};
+    constexpr GUID FolderSequenceGuid =
+        {0xf7be1b6a, 0x314c, 0x4f75, {0x9f, 0x3e, 0x7c, 0x35, 0x97, 0xb4, 0x2a, 0xd1}};
+    constexpr GUID FolderReplaceGuid =
+        {0xf7be1b6b, 0x314c, 0x4f75, {0x9f, 0x3e, 0x7c, 0x35, 0x97, 0xb4, 0x2a, 0xd1}};
     constexpr CLSID QuickSequenceGuid =
         {0xa01d3978, 0x7390, 0x4e7a, {0xab, 0x4e, 0x14, 0x6a, 0x28, 0xb7, 0x1f, 0x9c}};
     constexpr CLSID QuickReplaceGuid =
         {0xa01d3979, 0x7390, 0x4e7a, {0xab, 0x4e, 0x14, 0x6a, 0x28, 0xb7, 0x1f, 0x9c}};
     enum class CommandKind { Editor, QuickGroup, Sequence, Replace };
+    enum class SelectionKind { Files, Folders };
     volatile LONG objectCount = 0;
     volatile LONG lockCount = 0;
 
@@ -115,8 +126,10 @@ namespace
     {
         volatile LONG refs_ = 1;
         CommandKind kind_;
+        SelectionKind selectionKind_;
     public:
-        explicit ExplorerCommand(CommandKind kind) : kind_(kind) { InterlockedIncrement(&objectCount); }
+        ExplorerCommand(CommandKind kind, SelectionKind selectionKind)
+            : kind_(kind), selectionKind_(selectionKind) { InterlockedIncrement(&objectCount); }
         ~ExplorerCommand() { InterlockedDecrement(&objectCount); }
 
         HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** output) override
@@ -148,16 +161,19 @@ namespace
             switch (kind_)
             {
             case CommandKind::Editor:
-                label = L"\uC77C\uBC18 \uC774\uB984 \uBCC0\uACBD...";
+                label = selectionKind_ == SelectionKind::Folders
+                    ? L"\ud3f4\ub354 \uc774\ub984 \ubcc0\uacbd..." : L"\ud30c\uc77c \uc774\ub984 \ubcc0\uacbd...";
                 break;
             case CommandKind::QuickGroup:
                 label = L"DK Easy Renamer";
                 break;
             case CommandKind::Sequence:
-                label = L"\uBE60\uB978 \uC21C\uBC88 \uBCC0\uACBD...";
+                label = selectionKind_ == SelectionKind::Folders
+                    ? L"\ud3f4\ub354 \ube60\ub978 \uc21c\ubc88 \ubcc0\uacbd..." : L"\ud30c\uc77c \ube60\ub978 \uc21c\ubc88 \ubcc0\uacbd...";
                 break;
             case CommandKind::Replace:
-                label = L"\uBE60\uB978 \uCC3E\uAE30\u00B7\uBC14\uAFB8\uAE30...";
+                label = selectionKind_ == SelectionKind::Folders
+                    ? L"\ud3f4\ub354 \ube60\ub978 \ucc3e\uae30\u00b7\ubc14\uafb8\uae30..." : L"\ud30c\uc77c \ube60\ub978 \ucc3e\uae30\u00b7\ubc14\uafb8\uae30...";
                 break;
             }
             return SHStrDupW(label, title);
@@ -181,10 +197,18 @@ namespace
             if (!value) return E_POINTER;
             switch (kind_)
             {
-            case CommandKind::Editor: *value = QuickGroupClsid; break;
-            case CommandKind::QuickGroup: *value = CommandClsid; break;
-            case CommandKind::Sequence: *value = QuickSequenceGuid; break;
-            case CommandKind::Replace: *value = QuickReplaceGuid; break;
+            case CommandKind::Editor:
+                *value = selectionKind_ == SelectionKind::Folders ? FolderEditorGuid : QuickGroupClsid;
+                break;
+            case CommandKind::QuickGroup:
+                *value = selectionKind_ == SelectionKind::Folders ? FolderCommandClsid : CommandClsid;
+                break;
+            case CommandKind::Sequence:
+                *value = selectionKind_ == SelectionKind::Folders ? FolderSequenceGuid : QuickSequenceGuid;
+                break;
+            case CommandKind::Replace:
+                *value = selectionKind_ == SelectionKind::Folders ? FolderReplaceGuid : QuickReplaceGuid;
+                break;
             }
             return S_OK;
         }
@@ -245,8 +269,10 @@ namespace
     {
         volatile LONG refs_ = 1;
         ULONG index_;
+        SelectionKind selectionKind_;
     public:
-        explicit QuickCommandsEnumerator(ULONG index = 0) : index_(index) { InterlockedIncrement(&objectCount); }
+        QuickCommandsEnumerator(SelectionKind selectionKind, ULONG index = 0)
+            : index_(index), selectionKind_(selectionKind) { InterlockedIncrement(&objectCount); }
         ~QuickCommandsEnumerator() { InterlockedDecrement(&objectCount); }
         HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** output) override
         {
@@ -281,7 +307,7 @@ namespace
                 case 1: kind = CommandKind::Sequence; break;
                 default: kind = CommandKind::Replace; break;
                 }
-                auto* command = new (std::nothrow) ExplorerCommand(kind);
+                auto* command = new (std::nothrow) ExplorerCommand(kind, selectionKind_);
                 if (!command)
                 {
                     while (produced > 0) output[--produced]->Release();
@@ -307,7 +333,7 @@ namespace
         HRESULT STDMETHODCALLTYPE Clone(IEnumExplorerCommand** output) override
         {
             if (!output) return E_POINTER;
-            *output = new (std::nothrow) QuickCommandsEnumerator(index_);
+            *output = new (std::nothrow) QuickCommandsEnumerator(selectionKind_, index_);
             return *output ? S_OK : E_OUTOFMEMORY;
         }
     };
@@ -317,7 +343,7 @@ namespace
         if (!commands) return E_POINTER;
         *commands = nullptr;
         if (kind_ != CommandKind::QuickGroup) return E_NOTIMPL;
-        *commands = new (std::nothrow) QuickCommandsEnumerator;
+        *commands = new (std::nothrow) QuickCommandsEnumerator(selectionKind_);
         return *commands ? S_OK : E_OUTOFMEMORY;
     }
 
@@ -325,8 +351,10 @@ namespace
     {
         volatile LONG refs_ = 1;
         CommandKind kind_;
+        SelectionKind selectionKind_;
     public:
-        explicit CommandFactory(CommandKind kind) : kind_(kind) { InterlockedIncrement(&objectCount); }
+        CommandFactory(CommandKind kind, SelectionKind selectionKind)
+            : kind_(kind), selectionKind_(selectionKind) { InterlockedIncrement(&objectCount); }
         ~CommandFactory() { InterlockedDecrement(&objectCount); }
         HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** output) override
         {
@@ -353,7 +381,7 @@ namespace
         HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown* outer, REFIID iid, void** output) override
         {
             if (outer) return CLASS_E_NOAGGREGATION;
-            auto* command = new (std::nothrow) ExplorerCommand(kind_);
+            auto* command = new (std::nothrow) ExplorerCommand(kind_, selectionKind_);
             if (!command) return E_OUTOFMEMORY;
             HRESULT hr = command->QueryInterface(iid, output);
             command->Release();
@@ -380,12 +408,14 @@ extern "C" HRESULT __stdcall ModuleCanUnload()
 extern "C" HRESULT __stdcall ModuleGetClassObject(
     REFCLSID clsid, REFIID iid, void** output)
 {
-    if (!IsEqualCLSID(clsid, CommandClsid) && !IsEqualCLSID(clsid, QuickGroupClsid))
+    if (!IsEqualCLSID(clsid, CommandClsid) && !IsEqualCLSID(clsid, FolderCommandClsid) &&
+        !IsEqualCLSID(clsid, QuickGroupClsid))
         return CLASS_E_CLASSNOTAVAILABLE;
-    // Both CLSIDs can still be activated by existing cached registrations,
-    // but new packages expose only the original, stable top-level CLSID.
-    CommandKind kind = CommandKind::QuickGroup;
-    auto* factory = new (std::nothrow) CommandFactory(kind);
+    // File and folder root CLSIDs are independent; the existing selection-file
+    // protocol and explicit rename confirmation remain exactly the same.
+    SelectionKind selectionKind = IsEqualCLSID(clsid, FolderCommandClsid)
+        ? SelectionKind::Folders : SelectionKind::Files;
+    auto* factory = new (std::nothrow) CommandFactory(CommandKind::QuickGroup, selectionKind);
     if (!factory) return E_OUTOFMEMORY;
     HRESULT hr = factory->QueryInterface(iid, output);
     factory->Release();
