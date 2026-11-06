@@ -38,14 +38,14 @@ GitHub Actions의 검증된 APP-ONLY 테스트 설치본을 **재컴파일·파�
 pwsh -NoProfile -File .\tools\release\Prepare-UnsignedAppOnlyPreview.ps1
 ```
 
-산출물 (GitHub Actions 아티팩트 **비공개 릴리스 준비 파일**, 공개 Release가 아님):
+산출물 (**GitHub Actions 보관 아티팩트**이며 GitHub Release가 아님. 공개 저장소의 Actions 아티팩트는 접근 권한이 있는 사용자에게 다운로드될 수 있으므로 비밀 자료로 취급하지 않는다):
 
 - `DK-Easy-Renamer-0.1.2-x64-APP-ONLY.exe` — 서명 없는 독립 실행형 설치본. 파일 이름 변경·UI 사용 가능, Explorer 통합 없음
 - `SHA256SUMS.txt` — 설치 파일 단독 SHA-256
 - `PREVIEW_MANIFEST.json` — 커밋·해시·버전·서명 여부·공개 여부
 - `RELEASE_NOTES_DRAFT.md` — 사용자에게 표시할 한계·출처·해시·미공개 상태
 
-**아티팩트를 GitHub Release에 공개하거나 `RELEASE.exe`로 이름만 변경해 배포하지 않는다.**
+**아티팩트를 GitHub Release에 공개하거나 `RELEASE.exe`로 이름만 변경해 배포하지 않는다.** Actions 아티팩트 이름의 `NOT-PUBLISHED`는 GitHub Release 미발행을 뜻하며 외부 다운로드가 절대 불가능하다는 의미는 아니다.
 
 ## SignPath에 확인할 질의 초안 (실제 전송 전 검토)
 
