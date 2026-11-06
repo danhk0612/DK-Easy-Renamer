@@ -54,6 +54,7 @@ jobs:
         run: |
           ./tools/t05/Build-Distribution.ps1 -Version 0.2.0 -Classic
           ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Classic
+          ./tools/release/Prepare-ClassicRelease.ps1
           $file = 'artifacts/t05/installer/DK-Easy-Renamer-0.2.0-x64-CLASSIC-UNSIGNED.exe'
           if (-not (Test-Path -LiteralPath $file)) { throw 'Installer missing.' }
           if ((Get-AuthenticodeSignature -LiteralPath $file).Status -ne 'NotSigned') {
