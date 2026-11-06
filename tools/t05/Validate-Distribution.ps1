@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [ValidateSet('Unsigned','Signed','AppOnly')][string]$ExpectedMode = 'Unsigned'
+    [ValidateSet('Unsigned','Signed','AppOnly','Classic')][string]$ExpectedMode = 'Unsigned'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -96,6 +96,9 @@ foreach ($script in @(
     'installer\windows\Preflight-Shell.ps1',
     'installer\windows\Test-ShellPublisherTransition.ps1',
     'installer\windows\Unregister-Shell.ps1',
+    'installer\windows\Query-ClassicShell.ps1',
+    'installer\windows\Register-ClassicShell.ps1',
+    'installer\windows\Unregister-ClassicShell.ps1',
     'tools\ux07\Validate-PublicInstaller.ps1',
     'tools\ux07\Invoke-VerifiedUpdate.ps1',
     'tools\t05\Build-Distribution.ps1'
@@ -110,6 +113,7 @@ $setup = @(Get-ChildItem -LiteralPath $installerDir -Filter 'DK-Easy-Renamer-*-x
 if ($setup.Count -ne 1) { throw "Expected exactly one compiled installer, found $($setup.Count)." }
 $expectedSuffix = if ($ExpectedMode -eq 'Unsigned') { '-UNSIGNED-DO-NOT-INSTALL.exe' }
     elseif ($ExpectedMode -eq 'AppOnly') { '-APP-ONLY.exe' }
+    elseif ($ExpectedMode -eq 'Classic') { '-CLASSIC-UNSIGNED.exe' }
     else { '-SIGNED-PROBE.exe' }
 if (-not $setup[0].Name.EndsWith($expectedSuffix,[StringComparison]::Ordinal)) {
     throw "Installer has the wrong safety mode label: $($setup[0].Name)"
