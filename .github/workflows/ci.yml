@@ -208,6 +208,15 @@ jobs:
           name: t05-UNSIGNED-APP-ONLY-TEST-ONLY
           path: artifacts/t05/installer/
           retention-days: 14
+      - name: Prepare unsigned APP-ONLY inspection bundle (NOT PUBLISHED)
+        shell: pwsh
+        run: ./tools/release/Prepare-UnsignedAppOnlyPreview.ps1
+      - name: Upload SignPath eligibility preview (NOT a GitHub Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: signpath-unsigned-app-only-preview-NOT-PUBLISHED
+          path: artifacts/signpath-prep/unsigned-app-only/
+          retention-days: 7
       - name: Build isolated developer-signed setup (NOT a public release)
         shell: pwsh
         run: |
