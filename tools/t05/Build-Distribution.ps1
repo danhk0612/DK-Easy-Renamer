@@ -6,7 +6,8 @@ param(
     [string]$Version = '0.1.2',
     [string]$Publisher = 'CN=DK Easy Renamer Development',
     [string]$CertificateThumbprint = '',
-    [switch]$AppOnly
+    [switch]$AppOnly,
+    [switch]$Classic
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -51,8 +52,9 @@ $msix = Join-Path $art 'DKEasyRenamer.Shell.msix'
 Copy-Item -LiteralPath $unsigned -Destination $msix -Force
 
 $signed = -not [string]::IsNullOrWhiteSpace($CertificateThumbprint)
-if ($signed -and $AppOnly) { throw 'AppOnly is for an intentionally unsigned standalone build.' }
-$flavor = if ($signed) { 'SIGNED-PROBE' } elseif ($AppOnly) { 'APP-ONLY' } else { 'UNSIGNED-DO-NOT-INSTALL' }
+if ($signed -and ($AppOnly -or $Classic)) { throw 'Unsigned app-only/classic build cannot use a code signing certificate.' }
+if ($AppOnly -and $Classic) { throw 'Choose either AppOnly or Classic, not both.' }
+$flavor = if ($signed) { 'SIGNED-PROBE' } elseif ($Classic) { 'CLASSIC-UNSIGNED' } elseif ($AppOnly) { 'APP-ONLY' } else { 'UNSIGNED-DO-NOT-INSTALL' }
 if ($signed) {
     $cert = Get-Item -LiteralPath ('Cert:\CurrentUser\My\' + $CertificateThumbprint) -ErrorAction Stop
     if (-not $cert.HasPrivateKey -or $cert.Subject -ne $Publisher) {
@@ -83,6 +85,7 @@ if (-not $compiler) { throw 'Inno Setup ISCC.exe is required to compile the inst
 $iss = Join-Path $root 'installer\windows\DK-Easy-Renamer.iss'
 $arguments = @("/DPackageDir=$art","/DProductVersion=$Version","/DBuildFlavor=$flavor")
 if ($AppOnly) { $arguments += '/DAppOnlyBuild=1' }
+if ($Classic) { $arguments += '/DClassicBuild=1' }
 if ($signed) {
     $arguments += '/DSignedBuild=1'
     # Inno's signer signs Setup, uninstall binaries and temporary Setup copies.
