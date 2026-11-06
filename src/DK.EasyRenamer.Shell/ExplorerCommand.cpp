@@ -191,8 +191,15 @@ namespace
         HRESULT STDMETHODCALLTYPE GetState(IShellItemArray* items, BOOL, EXPCMDSTATE* state) override
         {
             if (!state) return E_POINTER;
+            // Explorer can query flyout children before passing a selection.
+            // Their actual Invoke still requires a nonempty IShellItemArray.
+            if (!items)
+            {
+                *state = ECS_ENABLED;
+                return S_OK;
+            }
             DWORD count = 0;
-            *state = items && SUCCEEDED(items->GetCount(&count)) && count > 0
+            *state = SUCCEEDED(items->GetCount(&count)) && count > 0
                 ? ECS_ENABLED : ECS_DISABLED;
             return S_OK;
         }
