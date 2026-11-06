@@ -40,7 +40,8 @@ foreach ($contract in @(
     'case 0: kind = CommandKind::Editor',
     'case 1: kind = CommandKind::Sequence',
     'default: kind = CommandKind::Replace',
-    'ECF_HASSUBCOMMANDS'
+    'ECF_HASSUBCOMMANDS',
+    'ECF_ISDROPDOWN'
 )) {
     if (-not $source.Contains($contract)) { throw "Missing native flyout contract: $contract" }
 }
