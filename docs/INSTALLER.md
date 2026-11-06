@@ -1,6 +1,6 @@
 # T05 — Windows 11 installer and distribution (automated build)
 
-> **Public GitHub Releases policy (2026-11-06):** Korea-based individual developer; first production release requires a CA-issued, trusted **individual** code-signing identity and matching EXE/DLL/MSIX/Inno signatures. No unsigned installer, self-signed SIGNED-PROBE, or SignPath Foundation publisher has been approved as the public production identity. Read [the public GitHub release plan](PUBLIC_GITHUB_RELEASE_PLAN.md) before using historical packaging examples. No release/tag is authorized yet.
+> **Public GitHub Releases policy (2026-11-06):** Korea-based individual developer, fully free software and **zero-cost signing budget**. The preferred conditional path is [SignPath Foundation OSS signing](PUBLIC_GITHUB_RELEASE_PLAN.md): the Windows verified publisher would be **SignPath Foundation**, not the individual. SignPath approval and a provider-specific staged EXE/DLL/MSIX/Inno signing flow are **not yet available**. No unsigned installer or development-signed SIGNED-PROBE is an approved public signed product; a clearly disclosed APP-ONLY unsigned first release is a separate decision. See the [draft code signing policy](CODE_SIGNING_POLICY.md). No public Release/tag is authorized yet.
 
 For the current Git checkout → automated CI artifact download → Windows 11 manual test workflow, use [Windows 11 test kit](WINDOWS11_TEST_KIT.md). The older version-specific packaging examples below remain historical development notes; never use an unsigned DO-NOT-INSTALL candidate as a test installer.
 
