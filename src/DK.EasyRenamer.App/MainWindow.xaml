@@ -20,6 +20,12 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Border Grid.Row="0" Background="{DynamicResource BrandBrush}">
+            <Image x:Name="VisibleWindowIcon" Source="/Assets/DK-Easy-Renamer-256.png"
+                   AutomationProperties.AutomationId="VisibleWindowIcon"
+                   AutomationProperties.Name="DK Easy Renamer 아이콘"
+                   Width="22" Height="22" Margin="12,0,0,0"
+                   HorizontalAlignment="Left" VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality" />
             <TextBlock x:Name="VisibleWindowCaption"
                        Text="DK Easy Renamer" AutomationProperties.AutomationId="VisibleWindowCaption"
                        Foreground="White" FontSize="13" FontWeight="SemiBold"
@@ -171,10 +177,21 @@
                                     <TextBlock Text=" 파일 추가" />
                                 </StackPanel>
                             </Button>
-                            <Button Click="OnAddFolder" ToolTip="폴더 자체를 목록에 추가">
+                            <Button x:Name="AddFolderButton" Click="OnShowFolderAddMenu"
+                                    ToolTip="추가할 폴더 또는 폴더 안의 항목 범위 선택">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="선택한 폴더 자체 추가" Click="OnAddSelectedFolders" />
+                                        <Separator />
+                                        <MenuItem Header="폴더 안의 파일 추가 (바로 아래)" Click="OnAddImmediateFolderFiles" />
+                                        <MenuItem Header="하위 폴더까지 파일 추가" Click="OnAddRecursiveFolderFiles" />
+                                        <Separator />
+                                        <MenuItem Header="직속 하위 폴더 자체 추가" Click="OnAddImmediateChildFolders" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="FolderAdd20" Width="19" Height="19" />
-                                    <TextBlock Text=" 폴더 추가" />
+                                    <TextBlock Text=" 폴더 추가 ▾" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -229,7 +246,7 @@
                     </DataGrid>
                     <TextBlock Grid.Row="3" Margin="0,11,0,0" TextWrapping="Wrap"
                                Foreground="{DynamicResource MutedBrush}" FontSize="11"
-                               Text="행을 드래그하거나 ↑ ↓ 버튼으로 순서를 변경하세요. 폴더는 기본적으로 폴더 자체의 이름만 변경합니다." />
+                               Text="행을 드래그하거나 ↑ ↓ 버튼으로 순서를 변경하세요. 폴더 추가 ▾에서 가져올 대상을 선택할 수 있습니다." />
                 </Grid>
             </Border>
         </Grid>
