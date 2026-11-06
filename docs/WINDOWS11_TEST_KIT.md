@@ -93,7 +93,8 @@ Generate an independent disposable fixture directory for each test session:
 - [ ] Invalid and duplicate targets block Apply without modifying original test files
 - [ ] Apply presents an explicit Yes/No confirmation; approving renames a fixture without altering contents
 - [ ] Undo restores original name and content; an occupied original path blocks unsafe rollback
-- [ ] Signed Explorer mode only: first-level right-click menu on individual and multiple files/folders passes exactly the selected paths
+- [ ] Signed Explorer mode only: one **DK Easy Renamer** flyout is visible in the first-level context menu for files/folders; expanding it shows **일반 이름 변경...**, **빠른 순번 변경...**, **빠른 찾기·바꾸기...**
+- [ ] Each of those three menu actions opens the existing app with exactly the selected file/folder paths, with quick rules preselected and **without automatic rename**
 - [ ] Signed install and uninstall preserve fixture data and correctly remove shell registration; an upgrade remains a separate test
 
 Record PASS / FAIL / BLOCKED, Windows 11 build, Git SHA, CI run ID, installer SHA-256 and errors/screenshots. See [T04 acceptance](T04_ACCEPTANCE.md) and [issue #7](https://github.com/danhk0612/DK-Easy-Renamer/issues/7) for more detailed cases.
