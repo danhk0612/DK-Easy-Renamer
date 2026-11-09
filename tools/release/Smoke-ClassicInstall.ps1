@@ -100,9 +100,24 @@ try {
     Invoke-Checked $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     Check-Removed
     if (Test-Path -LiteralPath $exe) { throw 'Uninstaller retained application executable.' }
+    # Inno's uninstaller can leave a detached self-deletion helper after its
+    # main process exits. Reinstalling immediately can race that helper and
+    # remove the *new* unins000.exe. Wait for the old uninstall to finish.
+    $cleanupDeadline = [DateTime]::UtcNow.AddSeconds(30)
+    while ((Test-Path -LiteralPath $installDir) -and
+        [DateTime]::UtcNow -lt $cleanupDeadline) {
+        Start-Sleep -Milliseconds 250
+    }
+    if (Test-Path -LiteralPath $installDir) {
+        throw 'Previous Inno uninstall files remained before reinstall.'
+    }
+    Start-Sleep -Seconds 2
 
     # Task unchecked must not leave a menu on a fresh installation.
     Invoke-Checked $installer[0].FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-')
+    if (-not (Test-Path -LiteralPath $uninstaller -PathType Leaf)) {
+        throw 'Reinstalled Inno setup did not retain unins000.exe.'
+    }
     Check-Removed
     Invoke-Checked $uninstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
     Check-Removed
