@@ -89,7 +89,7 @@ public partial class MainWindow
 
             string reason = approved
                 ? "공식 설치 파일의 이름·크기·해시 정보를 검증할 수 없어 앱 내 설치를 제공하지 않습니다."
-                : "공개 배포용 코드 서명자가 아직 확정되지 않아 앱 내 설치 기능이 비활성화되어 있습니다.";
+                : "무료 배포 설치본은 코드 서명이 없어 앱 내 자동 설치가 비활성화되어 있습니다. 공식 GitHub Release에서 직접 다운로드해 설치하세요.";
             var choice = MessageBox.Show(this,
                 announcement + reason + "\n\n공식 GitHub 릴리스 페이지를 브라우저로 여시겠습니까?",
                 "새 버전 확인", MessageBoxButton.YesNo, MessageBoxImage.Information);

@@ -1,0 +1,124 @@
+name: Publish unsigned classic v0.2.0 after approval
+
+# The approval marker must be committed to main separately after the PR CI passed.
+# A release is NEVER created by a pull request or routine build.
+on:
+  push:
+    branches: [main]
+    paths:
+      - release/publish-v0.2.0.approved
+
+jobs:
+  build:
+    if: github.repository == 'danhk0612/DK-Easy-Renamer'
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Create icon, build app and run tests
+        shell: pwsh
+        run: |
+          ./tools/t03/Generate-Icon.ps1
+          dotnet restore DK-Easy-Renamer.sln
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed.' }
+          dotnet build DK-Easy-Renamer.sln -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet build failed.' }
+          dotnet test DK-Easy-Renamer.sln -c Release --no-build
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet test failed.' }
+      - name: Build native Explorer command DLL
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $msbuild = & $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+          if (-not $msbuild) { throw 'MSBuild not found.' }
+          & $msbuild 'src/DK.EasyRenamer.Shell/DK.EasyRenamer.Shell.vcxproj' /p:Configuration=Release /p:Platform=x64 /m
+          if ($LASTEXITCODE -ne 0) { throw 'Native DLL build failed.' }
+          & $msbuild 'tools/t04/Smoke-QuickFlyout.vcxproj' /p:Configuration=Release /p:Platform=x64 /m
+          if ($LASTEXITCODE -ne 0) { throw 'Native COM test build failed.' }
+          & 'artifacts/t01/native/Smoke-QuickFlyout.exe' 'artifacts/t01/native/DK.EasyRenamer.Shell.dll'
+          if ($LASTEXITCODE -ne 0) { throw 'Native COM flyout contract invalid.' }
+      - name: Install Inno Setup 6
+        shell: pwsh
+        run: |
+          $compiler = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $compiler)) {
+            choco install innosetup --version=6.7.1 --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
+          }
+      - name: Build and validate unsigned public installer
+        shell: pwsh
+        run: |
+          ./tools/t05/Build-Distribution.ps1 -Version 0.2.0 -Classic
+          ./tools/t05/Validate-Distribution.ps1 -ExpectedMode Classic
+          ./tools/release/Prepare-ClassicRelease.ps1
+          $file = 'artifacts/t05/installer/DK-Easy-Renamer-0.2.0-x64-RELEASE.exe'
+          if (-not (Test-Path -LiteralPath $file)) { throw 'Installer missing.' }
+          if ((Get-AuthenticodeSignature -LiteralPath $file).Status -ne 'NotSigned') {
+            throw 'Unexpected signature on unsigned release.'
+          }
+          $zip = [IO.File]::ReadAllBytes($file)
+          if ($zip.Length -lt 1000000) { throw 'Installer appears truncated.' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-classic-v0.2.0-public-candidate
+          path: |
+            artifacts/t05/installer/DK-Easy-Renamer-0.2.0-x64-RELEASE.exe
+            artifacts/t05/installer/SHA256SUMS.txt
+          retention-days: 30
+
+  smoke:
+    needs: build
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: unsigned-classic-v0.2.0-public-candidate
+          path: ${{ runner.temp }}/dk-classic-setup
+      - name: Install, enable and disable classic COM flyouts, uninstall
+        shell: pwsh
+        run: ./tools/release/Smoke-ClassicInstall.ps1 -ArtifactFolder "$env:RUNNER_TEMP/dk-classic-setup"
+
+  publish:
+    needs: [build, smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: unsigned-classic-v0.2.0-public-candidate
+          path: dist
+      - name: Verify final release hash and new tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum -c SHA256SUMS.txt
+          if gh release view v0.2.0 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Release v0.2.0 already exists; refusing overwrite.'
+            exit 1
+          fi
+      - name: Publish approved unsigned classic release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v0.2.0 \
+            "dist/DK-Easy-Renamer-0.2.0-x64-RELEASE.exe" \
+            "dist/SHA256SUMS.txt" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "DK Easy Renamer v0.2.0" \
+            --notes-file docs/releases/v0.2.0.md \
+            --latest
