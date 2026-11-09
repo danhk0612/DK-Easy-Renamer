@@ -1,0 +1,11 @@
+release: v0.2.0
+channel: GitHub Releases
+artifact: DK-Easy-Renamer-0.2.0-x64-RELEASE.exe
+signature: unsigned
+explorer: classic per-user menu (Windows 11 Show more options)
+approval: user requested completion of the public release
+approval_date: 2026-11-09
+reviewed_pr: 52
+merged_main_commit: dc1482563602657556a4541aac186a3cbdcc127d
+passing_pr_ci: https://github.com/danhk0612/DK-Easy-Renamer/actions/runs/42543033821
+publication_guard: dedicated workflow rebuilds, verifies checksums and re-tests Windows installation before publishing
