@@ -28,11 +28,16 @@ if ((Test-Path -LiteralPath $installDir) -or
     @(Get-AppxPackage -Name 'DKEasyRenamer.Shell').Count) {
     throw 'Test runner not clean.'
 }
-function Invoke-Checked([string]$file,[string[]]$args) {
+function Invoke-Checked([string]$file,[string[]]$arguments) {
+    # PowerShell reserves $args for unbound arguments. Never name a parameter
+    # $args: doing so silently discarded /VERYSILENT and /TASKS in the CI smoke.
+    if ($arguments.Count -eq 0 -or $arguments -notcontains '/VERYSILENT') {
+        throw 'The Inno smoke must invoke installer/uninstaller silently.'
+    }
     $log = Join-Path $env:RUNNER_TEMP ('classic-inno-' + [guid]::NewGuid().ToString('N') + '.log')
-    $args += ('/LOG="' + $log + '"')
-    Write-Host "Invoking: $([IO.Path]::GetFileName($file))"
-    $p = Start-Process -FilePath $file -ArgumentList $args -PassThru
+    $arguments += ('/LOG="' + $log + '"')
+    Write-Host "Invoking: $([IO.Path]::GetFileName($file)); arguments: $($arguments -join ' ')"
+    $p = Start-Process -FilePath $file -ArgumentList $arguments -PassThru
     try {
         if (-not $p.WaitForExit(85000)) {
             Write-Host '=== Running relevant processes ==='
